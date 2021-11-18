@@ -35,7 +35,6 @@ public:
         job = &mgmt_job;
         report = &mgmt_report; enable_wait(mgmt_report);
         //Сейчас разово т.к программа рассчитана на одно измерение//
-        flags |= evaluate_once_needed;
     }
     pckt convert(){
         return
