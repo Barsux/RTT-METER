@@ -6,6 +6,7 @@
 
 class Mgmt{
     virtual ~Mgmt() {}
+public:
     class Setup {public:
         int argc;
         char* argv[];
