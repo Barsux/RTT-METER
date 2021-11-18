@@ -39,13 +39,18 @@ int utc2str(char* dst, int cbDstMax, U64 utc) {
   );
 }
 
-int str2ip4(char* dst, int cbDstMax, IP4 ip){
-    U32 digits[4];
-    int status = sscanf(dst, cbDstMax, "%u.%u.%u.%u", &digits[0], &digits[1], &digits[2], &digits[3]);
-    for(int i = 0; i < 4; i++){
-        ip[i] = digits[i];
-    }
-    return status == 4;
+int str2ip4 (const char * dst, IP4 ip)
+{
+    unsigned int byte0, byte1, byte2, byte3;
+    char fakeString[2];
+    if (sscanf(dst, "%u.%u.%u.%u%1s", &byte3, &byte2, &byte1, &byte0, fakeString) == 4)
+    {
+        if ((byte3 < 256) && (byte2 < 256) && (byte1 < 256) && (byte0 < 256))
+        {
+            ip  = (byte3 << 24) + (byte2 << 16) + (byte1 << 8) + byte0;
+            return 1;
+        }
+    }return 0;
 }
 
 int mac2str(char* dst, int cbDstMax, MAC mac) {
