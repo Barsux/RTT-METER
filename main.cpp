@@ -4,7 +4,7 @@
 #include "mgmt.h"
 
 #pragma argsused
-int main(int argc, char* argv[])
+int main(int argc, char **argv)
 {
   WaitSystem* waitSystem = new_WaitSystem();
   Core::Setup coreSetup;
@@ -12,9 +12,10 @@ int main(int argc, char* argv[])
 
   Mgmt::Setup mgmtSetup;
   Mgmt* mgmt = new_Mgmt(waitSystem, mgmtSetup);
+  core->attach_mgmt(mgmt->job, mgmt->report);
 
   L2Transport::Setup l2Transport_setup;
-  l2Transport_setup.physicalId = "eth0";
+  l2Transport_setup.physicalId = "enp4s0";
   L2Transport* l2Transport = new_L2Transport(waitSystem, l2Transport_setup);
   core->attach_l2_transport(l2Transport->rx, l2Transport->tx, l2Transport->sent);
 
