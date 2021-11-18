@@ -14,14 +14,15 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup), l2_transport_rx(), l2_transport_tx()
+    , setup(setup), l2_transport_rx(), l2_transport_tx(), mgmt_job(), mgmt_report()
   {
     module_debug = "CORE";
   }
   WaitSystem::Queue timer;
 
   void attach_mgmt(Mgmt::Queue_job* mgmt_job, Mgmt::Queue_report* mgmt_report){
-
+    disable_wait(mgmt_job); disable_wait(mgmt_report);
+      enable_wait(mgmt_job);
   }
 
   void attach_l2_transport(L2Transport::Queue_rx* rx, L2Transport::Queue_tx* tx, L2Transport::Queue_sent* sent) {
