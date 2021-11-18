@@ -40,9 +40,12 @@ int utc2str(char* dst, int cbDstMax, U64 utc) {
 }
 
 int str2ip4(char* dst, int cbDstMax, IP4 ip){
-    return snprintf(dst, int cbDstMax, "%u.%u.%u.%u"
-    , digits[0], digits[1], digits[2], digits[3]
-    );
+    U32 digits[4];
+    int status = sscanf(dst, cbDstMax, "%u.%u.%u.%u", &digits[0], &digits[1], &digits[2], &digits[3]);
+    for(int i = 0; i < 4; i++){
+        ip[i] = digits[i];
+    }
+    return status == 4;
 }
 
 int mac2str(char* dst, int cbDstMax, MAC mac) {
