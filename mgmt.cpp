@@ -34,7 +34,6 @@ public:
         module_debug = "MGMT";
         job = &mgmt_job;
         report = &mgmt_report; enable_wait(mgmt_report);
-        //Сейчас разово т.к программа рассчитана на одно измерение//
     }
     pckt convert(){
         return
@@ -44,3 +43,7 @@ public:
 
     }
 };
+
+Mgmt* new_Mgmt(WaitSystem* waitSystem, Mgmt::Setup &setup){
+    return new MgmtObject(waitSystem, setup);
+}
