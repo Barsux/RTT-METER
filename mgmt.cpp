@@ -20,8 +20,8 @@ public:
     bool converted;
     class Job: public Queue_job {public:
         MgmtObject &base;
-        struct pckt convert(char * []){
-            return base.convert(char * []);
+        struct pckt convert(char* argv[], int argc){
+            return base.convert(char* argv[], int argc);
         }
     } mgmt_job;
 
@@ -37,7 +37,7 @@ public:
         //Сейчас разово т.к программа рассчитана на одно измерение//
         flags |= evaluate_once_needed;
     }
-     convert(){
+    pckt convert(){
         return
     }
     void evaluate(){
