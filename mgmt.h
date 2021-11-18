@@ -4,9 +4,8 @@
 
 #include "base.h"
 
-class Mgmt{
+class Mgmt{public:
     virtual ~Mgmt() {}
-public:
     class Setup {public:
         int argc;
         char* argv[];
