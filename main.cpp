@@ -11,6 +11,8 @@ int main(int argc, char **argv)
   Core* core = new_Core(waitSystem, coreSetup);
 
   Mgmt::Setup mgmtSetup;
+  mgmtSetup.argc = argc;
+  mgmtSetup.argv = argv;
   Mgmt* mgmt = new_Mgmt(waitSystem, mgmtSetup);
   core->attach_mgmt(mgmt->job, mgmt->report);
 
