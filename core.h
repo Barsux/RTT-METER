@@ -2,9 +2,9 @@
 #define coreH
 
 #include "base.h"
-#include "l2_transport.h"
-#include "mgmt.h"
-#include "global_setup.h"
+#include "l2_transport_linux.h"
+#include "mgmt_linux.h"
+#include "global_setup_linux.h"
 
 class Core {public:
   virtual ~Core() {}
