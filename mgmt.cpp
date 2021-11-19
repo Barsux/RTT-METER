@@ -3,19 +3,6 @@
 class MgmtObject: public WaitSystem::Module, public Mgmt {
     Mgmt::Setup &setup;
 public:
-    struct pckt{
-        MAC srcMAC, dstMAC;
-        IP4 srcIP, dstIP;
-        int scrPORT, dstPORT;
-        int size, pckt_per_s, duration;
-        pckt(): scrPORT(5850), dstPORT(5850), size(1024), pckt_per_s(1), duration(1) {
-            //memset(srcMAC, 0, sizeof(srcMAC));
-            //memset(dstMAC, 0, sizeof(dstMAC));
-            //memset(srcIP, 0, sizeof(srcIP));
-            //memset(dstIP, 0, sizeof(dstIP));
-        }
-    }pckt;
-
     bool converted;
     class Job: public Queue_job {public:
         MgmtObject &base;
@@ -48,8 +35,10 @@ public:
         return data;
     }
     void evaluate(){
-        if(!converted) convert(setup.argc, setup.argv);
-
+        if(!converted) {
+            job->packet = convert(setup.argc, setup.argv);
+            job->setReady();
+        }
     }
 };
 

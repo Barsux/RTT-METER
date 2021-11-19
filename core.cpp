@@ -20,9 +20,10 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   }
   WaitSystem::Queue timer;
 
-  void attach_mgmt(Mgmt::Queue_job* mgmt_job, Mgmt::Queue_report* mgmt_report){
+  void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
     disable_wait(mgmt_job); disable_wait(mgmt_report);
-      enable_wait(mgmt_job);
+    enable_wait(mgmt_job);
+    mgmt_job = job; mgmt_report = report;
   }
 
   void attach_l2_transport(L2Transport::Queue_rx* rx, L2Transport::Queue_tx* tx, L2Transport::Queue_sent* sent) {
@@ -40,8 +41,8 @@ class CoreObject: public WaitSystem::Module, public Core {public:
       print("TIMER");
       timer.clear();
       enable_wait(l2_transport_tx);
-    } else
-    if (queue==l2_transport_rx) {
+    }
+    else if (queue==l2_transport_rx) {
       U8 packet[2048]; int cbPacket; U64 utc_rx;
       while (true) {
         cbPacket = l2_transport_rx->recv(utc_rx, packet, sizeof(packet)); if (cbPacket<=0) break;
@@ -49,8 +50,8 @@ class CoreObject: public WaitSystem::Module, public Core {public:
         print("RECV L2 PACKET  AT %s => %i B", t, cbPacket);
       }
       l2_transport_rx->clear();
-    } else
-    if (queue==l2_transport_tx) {
+    }
+    else if (queue==l2_transport_tx) {
       U8 p[1024]; memset(p, 0, sizeof(p));
       MAC &dst = *(MAC*)&p[0]; MAC &src = *(MAC*)&p[6]; U16 &pt_BE = *(U16*)&p[12];
       str2mac(dst, "60:45:cb:9b:cd:4e");
@@ -62,12 +63,13 @@ class CoreObject: public WaitSystem::Module, public Core {public:
         l2_transport_tx->clear();
         disable_wait(l2_transport_tx);
       }
-    } else
-    if (queue==l2_transport_sent) {
+    }
+    else if (queue==l2_transport_sent) {
       char t[128]; utc2str(t, sizeof(t), l2_transport_sent->utc_sent);
       print("L2 PACKET: SENT AT %s", t);
       l2_transport_sent->clear();
     }
+    else if (queue==report)
   }
 };
 
