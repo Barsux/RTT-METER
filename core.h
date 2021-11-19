@@ -4,7 +4,7 @@
 #include "base.h"
 #include "l2_transport.h"
 #include "mgmt.h"
-#include "file_mgmt.h"
+#include "global_setup.h"
 
 class Core {public:
   virtual ~Core() {}
@@ -22,11 +22,10 @@ class Core {public:
     Mgmt::Queue_report* mgmt_report
   ) = 0;
 
-  virtual void attach_file_mgmt(
-    File_mgmt::Queue_toSet* fmgmt_set,
-    File_mgmt::Queue_toSave* fmgmt_save
+  virtual void attach_Global_setup(
+    Global_setup::Queue_toSet* setup_set,
+    Global_setup::Queue_toSave* setup_save
   ) = 0;
-
 
 };
 
