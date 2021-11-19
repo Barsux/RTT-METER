@@ -20,10 +20,9 @@ public:
     class Job: public Queue_job {public:
         MgmtObject &base;
         Job(MgmtObject &base): base(base){}
-        //struct pckt convert(int argc, char **argv){
-        //    return base.convert(int argc, char **argv);
-        //}
-
+        struct pckt convert(int argc, char **argv) {
+            return base.convert(argc,  argv);
+        }
     } mgmt_job;
 
     class Report: public Queue_report {public:
@@ -36,19 +35,20 @@ public:
     MgmtObject(WaitSystem* waitSystem, Mgmt::Setup &setup): WaitSystem::Module(waitSystem)
     , setup(setup), converted(false), mgmt_job(*this), mgmt_report(*this)
     {
-        module_debug = "MGMT";
+        module_debug = "Managment";
         job = &mgmt_job;
         report = &mgmt_report; enable_wait(report);
     }
     void report_void(){
 
     }
-    struct pckt convert(){
+    struct pckt convert(int argc, char **argv){
         struct pckt data;
+        print("Converted!");
         return data;
     }
     void evaluate(){
-        if(!converted) convert();
+        if(!converted) convert(setup.argc, setup.argv);
 
     }
 };
