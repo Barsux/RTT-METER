@@ -71,7 +71,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     }
     else if (queue==mgmt_job){
         print("Accepted convertable values!");
-        disable_wait(mgmt_job);
+        mgmt_job->clear();
     }
   }
 };
