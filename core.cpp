@@ -69,7 +69,10 @@ class CoreObject: public WaitSystem::Module, public Core {public:
       print("L2 PACKET: SENT AT %s", t);
       l2_transport_sent->clear();
     }
-    else if (queue==report)
+    else if (queue==mgmt_job){
+        print("Accepted convertable values!");
+        disable_wait(mgmt_job);
+    }
   }
 };
 
