@@ -21,9 +21,9 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   WaitSystem::Queue timer;
 
   void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
+    mgmt_job = job; mgmt_report = report;
     disable_wait(mgmt_job); disable_wait(mgmt_report);
     enable_wait(mgmt_job);
-    mgmt_job = job; mgmt_report = report;
   }
 
   void attach_l2_transport(L2Transport::Queue_rx* rx, L2Transport::Queue_tx* tx, L2Transport::Queue_sent* sent) {
@@ -34,7 +34,6 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     waitSystem->enable_wait(this, &timer);
     waitSystem->start_timer(&timer, 500000000ULL);
   }
-
   void evaluate() {
     while (WaitSystem::Queue* queue = enum_ready_queues())
     if (queue==&timer) {
