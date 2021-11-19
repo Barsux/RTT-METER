@@ -1,8 +1,9 @@
-//
-// Created by barsux on 19.11.2021.
-//
+#ifndef GLOBAL_SETUP_LINUX_H
+#define GLOBAL_SETUP_LINUX_H
 
-#ifndef BASE_GLOBAL_SETUP_LINUX_H
-#define BASE_GLOBAL_SETUP_LINUX_H
+#include "global_setup.h"
 
-#endif //BASE_GLOBAL_SETUP_LINUX_H
+
+Global_setup* new_Global_setup(WaitSystem* waitSystem, Global_setup::Setup &setup);
+
+#endif GLOBAL_SETUP_LINUX_H

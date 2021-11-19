@@ -3,7 +3,7 @@
 #define MGMT_H
 
 #include "base.h"
-#include "file_mgmt.h"
+#include "global_setup.h"
 
 class Mgmt{public:
     struct pckt{
@@ -23,12 +23,11 @@ class Mgmt{public:
     }* job;
     class Queue_report: public WaitSystem::Queue {public:
     }* report;
-    virtual void attach_file_mgmt(
-        File_mgmt::Queue_toSet* fmgmt_set,
-        File_mgmt::Queue_toSave* fmgmt_save
+    virtual void attach_Global_setup(
+            Global_setup::Queue_toSet* setup_set,
+            Global_setup::Queue_toSave* setup_save
     ) = 0;
 };
 
-Mgmt* new_Mgmt(WaitSystem* waitSystem, Mgmt::Setup &setup);
 
 #endif MGMT_H
