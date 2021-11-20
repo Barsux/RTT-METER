@@ -12,8 +12,8 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   Mgmt::Queue_job*                  mgmt_job;
   Mgmt::Queue_report*            mgmt_report;
 
-  //Global_setup::Queue_toSet*       setup_set;
-  //Global_setup::Queue_toSave*     setup_save;
+  Global_setup::Queue_toSet*       setup_set;
+  Global_setup::Queue_toSave*     setup_save;
 
   Packager::Queue_prx*           packager_rx;
   Packager::Queue_ptx*           packager_tx;
@@ -27,23 +27,23 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   }
   WaitSystem::Queue timer;
 
-  //void attach_Global_setup(Global_setup::Queue_toSave* save, Global_setup::Queue_toSet* set){
-  //  setup_set = set; setup_save = save;
-  //  disable_wait(setup_set); disable_wait(setup_save);
-  //  enable_wait(setup_set);
-  //}
+  void attach_Global_setup(Global_setup::Queue_toSave* save, Global_setup::Queue_toSet* set){
+    setup_set = set; setup_save = save;
+    disable_wait(setup_set); disable_wait(setup_save);
+    enable_wait(setup_set);
+  }
 
-  void attach_packager(Packager::Queue_ptx* ptx, Packager::Queue_prx* prx, Packager::Queue_psent* psent){
+  void attach_packager(Packager::Queue_prx* prx, Packager::Queue_ptx* ptx, Packager::Queue_psent* psent){
+    disable_wait(packager_tx); disable_wait(packager_rx); disable_wait(packager_sent);
     packager_tx = ptx;
     packager_rx = prx;
     packager_sent = psent;
-    disable_wait(packager_tx); disable_wait(packager_rx); disable_wait(packager_sent);
     enable_wait(packager_rx); enable_wait(packager_sent);
   }
 
   void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
-    mgmt_job = job; mgmt_report = report;
     disable_wait(mgmt_job); disable_wait(mgmt_report);
+    mgmt_job = job; mgmt_report = report;
     enable_wait(mgmt_job);
   }
 

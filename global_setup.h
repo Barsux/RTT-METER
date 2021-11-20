@@ -22,9 +22,6 @@ class Global_setup{public:
         settings(): have_settings(false){}
     }settings;
     virtual ~Global_setup() {}
-    class Setup {public:
-        char * path;
-    };
     class Queue_toSet: public WaitSystem::Queue {public:
         struct settings config;
     }* set;

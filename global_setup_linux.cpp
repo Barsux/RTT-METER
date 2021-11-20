@@ -1,7 +1,6 @@
 #include "global_setup_linux.h"
 
-class Global_setupObject: public WaitSystem::Module, public Global_setup {
-    Global_setup::Setup &setup;
+class Global_setupObject: public WaitSystem::Module{
 public:
     char * path;
     bool setted;
@@ -21,7 +20,7 @@ public:
         }
     } setup_save;
 
-    Global_setupObject(WaitSystem* waitSystem, Global_setup::Setup &setup): WaitSystem::Module(waitSystem)
+    Global_setupObject(WaitSystem* waitSystem): WaitSystem::Module(waitSystem)
             ,setup(setup), setted(false),path("cfg.json"), setup_set(*this), setup_save(*this)
     {
         module_debug = "File_Managment";
@@ -46,6 +45,6 @@ public:
         }
     }
 };
-Global_setup* new_Global_setup(WaitSystem* waitSystem, Global_setup::Setup &setup){
-    return new Global_setupObject(waitSystem, setup);
+Global_setup* new_Global_setup(WaitSystem* waitSystem){
+    return new Global_setupObject(waitSystem);
 }

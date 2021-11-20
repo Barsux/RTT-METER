@@ -23,10 +23,10 @@ class Core {public:
     Mgmt::Queue_report* mgmt_report
   ) = 0;
 
-  //virtual void attach_Global_setup(
-  //  Global_setup::Queue_toSet* setup_set,
-  //  Global_setup::Queue_toSave* setup_save
-  //) = 0;
+  virtual void attach_Global_setup(
+    Global_setup::Queue_toSave* setup_save,
+    Global_setup::Queue_toSet* setup_set
+  ) = 0;
 
   virtual void attach_packager(
     Packager::Queue_prx* packager_rx,
