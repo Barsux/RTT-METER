@@ -20,13 +20,15 @@ class Mgmt{public:
     };
     class Queue_job: public WaitSystem::Queue {public:
         struct pckt packet;
+        virtual struct pckt convert(int argc, char **argv);
     }* job;
     class Queue_report: public WaitSystem::Queue {public:
+        virtual void report() = 0;
     }* report;
-    virtual void attach_Global_setup(
-            Global_setup::Queue_toSet* setup_set,
-            Global_setup::Queue_toSave* setup_save
-    ) = 0;
+    //virtual void attach_Global_setup(
+    //        Global_setup::Queue_toSet* setup_set,
+    //        Global_setup::Queue_toSave* setup_save
+    //) = 0;
 };
 
 

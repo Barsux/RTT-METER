@@ -14,7 +14,7 @@ public:
         PackagerObject &base;
         Tx(PackagerObject &base): base(base){}
     } packager_tx;
-    class Sent: public Queue_psend {public:
+    class Sent: public Queue_psent {public:
         PackagerObject &base;
         Sent(PackagerObject &base): base(base){}
     } packager_sent;
@@ -24,25 +24,20 @@ public:
         l2_transport_rx = rx; l2_transport_tx = tx; l2_transport_sent = sent;
         enable_wait(l2_transport_rx);
         enable_wait(l2_transport_sent);
-        waitSystem->enable_wait(this, &timer);
-        waitSystem->start_timer(&timer, 500000000ULL);
     }
 
 
     PackagerObject(WaitSystem* waitSystem, Packager::Setup &setup): WaitSystem::Module(waitSystem)
-            ,setup(setup), packager_rx(*this), packager_tx(*this), packager_send(*this)
+            ,setup(setup), packager_rx(*this), packager_tx(*this), packager_sent(*this)
     {
-        module_debug = "File_Managment";
-        save = &setup_save;
-        set = &setup_set;
-        enable_wait(save);
+        module_debug = "Packager";
+        rx = &packager_rx;
+        tx = &packager_tx;
+        sent = &packager_sent;
+        enable_wait(tx);
     }
 
     void evaluate(){
-        if(!setted){
-            if(setup.path != path) path = setup.path;
-            get_settings(path);
-        }
     }
 };
 Packager* new_Packager(WaitSystem* waitSystem, Packager::Setup &setup){
