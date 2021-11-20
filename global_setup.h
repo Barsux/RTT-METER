@@ -12,7 +12,7 @@ class Global_setup{public:
         struct packager{
             bool busy;
             int port;
-            char * interface;
+            char * interface_name;
             packager(): busy(false){}
         }packager;
         struct core{
