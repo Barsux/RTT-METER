@@ -5,7 +5,7 @@
 #include "l2_transport_linux.h"
 #include "mgmt_linux.h"
 #include "global_setup_linux.h"
-#include "packager_linux.h"
+#include "packetizer_linux.h"
 
 class Core {public:
   virtual ~Core() {}
@@ -28,10 +28,10 @@ class Core {public:
     Global_setup::Queue_toSet* setup_set
   ) = 0;
 
-  virtual void attach_packager(
-    Packager::Queue_prx* packager_rx,
-    Packager::Queue_ptx* packager_tx,
-    Packager::Queue_psent* packager_sent
+  virtual void attach_packetizer(
+    Packetizer::Queue_prx* prx,
+    Packetizer::Queue_ptx* ptx,
+    Packetizer::Queue_psent* psent
   ) = 0;
 
 };

@@ -15,13 +15,13 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   Global_setup::Queue_toSet*       setup_set;
   Global_setup::Queue_toSave*     setup_save;
 
-  Packager::Queue_prx*           packager_rx;
-  Packager::Queue_ptx*           packager_tx;
-  Packager::Queue_psent*          packager_sent;
+  Packetizer::Queue_prx*        packetizer_rx;
+  Packetizer::Queue_ptx*        packetizer_tx;
+  Packetizer::Queue_psent*    packetizer_sent;
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup), l2_transport_rx(), l2_transport_tx(), mgmt_job(), mgmt_report(), packager_tx(), packager_rx(), packager_sent()
+    , setup(setup), l2_transport_rx(), l2_transport_tx(), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
     module_debug = "CORE";
   }
@@ -33,12 +33,12 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     enable_wait(setup_set);
   }
 
-  void attach_packager(Packager::Queue_prx* prx, Packager::Queue_ptx* ptx, Packager::Queue_psent* psent){
-    disable_wait(packager_tx); disable_wait(packager_rx); disable_wait(packager_sent);
-    packager_tx = ptx;
-    packager_rx = prx;
-    packager_sent = psent;
-    enable_wait(packager_rx); enable_wait(packager_sent);
+  void attach_packetizer(Packetizer::Queue_prx* rx, Packetizer::Queue_ptx* tx, Packetizer::Queue_psent* sent){
+    disable_wait(packetizer_tx); disable_wait(packetizer_rx); disable_wait(packetizer_sent);
+    packetizer_tx = tx;
+    packetizer_rx = rx;
+    packetizer_sent = sent;
+    enable_wait(packetizer_rx); enable_wait(packetizer_sent);
   }
 
   void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
