@@ -5,6 +5,8 @@
 #include "l2_transport_linux.h"
 #include "global_setup_linux.h"
 
+
+#pragma pack(push, 1)
 struct ethheader{
     MAC dst;
     MAC src;
@@ -33,6 +35,8 @@ struct udpheader {
     unsigned short int check;
 
 };
+#pragma pack(pop)
+
 
 class Packetizer{public:
     virtual ~Packetizer() {}
