@@ -16,7 +16,6 @@ public:
         Global_setupObject &base;
         Save(Global_setupObject &base): base(base){}
         int save_values(struct settings config){
-            return base.save_values(config);
         }
     } setup_save;
 
@@ -29,15 +28,18 @@ public:
         enable_wait(save);
     }
 
+    struct settings get_settings(char * dir){
+    }
+
+    void save_values(struct settings cfg){
+    }
+
     void evaluate(){
         if(!setted){
             print("READY!");
             setted = true;
         }
-        while (WaitSystem::Queue* queue = enum_ready_queues())
-            if(queue == timer)
-
-
+        while (WaitSystem::Queue* queue = enum_ready_queues()){}
     }
 };
 Global_setup* new_Global_setup(WaitSystem* waitSystem){

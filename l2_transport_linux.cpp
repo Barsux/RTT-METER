@@ -22,8 +22,8 @@ public:
     L2Transport_Linux &base;
     Tx(L2Transport_Linux &base): base(base) {
     }
-    int send(void* src, int cbSrc) {
-      return base.send(src, cbSrc);
+    int send(struct msghdr msg) {
+      return base.send(msg);
     }
   } queue_tx;
   Queue_sent queue_sent;
@@ -84,9 +84,7 @@ public:
     return r;
   }
 
-  int send(void* src, int cbSrc) {
-    iovec iovec; iovec.iov_base = src; iovec.iov_len = cbSrc;
-    msghdr msg = {}; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
+  int send(struct msghdr msg) {
     int cb = sendmsg(fd, &msg, MSG_DONTWAIT);
     return cb>=0? cb: -1;
   }

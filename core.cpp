@@ -2,7 +2,8 @@
 
 class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
-
+  struct measurement measure;
+  bool dumm;
   //Очереди mgmt
   Mgmt::Queue_job*                  mgmt_job;
   Mgmt::Queue_report*            mgmt_report;
@@ -16,7 +17,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+    , setup(setup), dumm(false), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
     module_debug = "CORE";
   }
@@ -34,6 +35,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     packetizer_rx = rx;
     packetizer_sent = sent;
     enable_wait(packetizer_rx); enable_wait(packetizer_sent);
+      enable_wait(packetizer_tx);
   }
 
   void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
@@ -43,6 +45,9 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   }
 
   void evaluate() {
+      if (!dumm) {
+          packetizer_tx->send(1);
+      }
       while (WaitSystem::Queue* queue = enum_ready_queues())
             if (queue==&timer) {
                 print("TIMER");
@@ -50,6 +55,10 @@ class CoreObject: public WaitSystem::Module, public Core {public:
             else if (queue==&mgmt_job){
                 print("Accepted convertable values!");
                 mgmt_job->clear();
+            }
+            else if(queue==&packetizer_tx) {
+                packetizer_tx->send(1);
+                disable_wait(packetizer_tx);
             }
         }
 };

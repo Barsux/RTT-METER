@@ -42,6 +42,7 @@ typedef uint8_t U8;
 typedef U64 UTC;
 typedef U8 MAC[6];
 typedef U32 IP4;
+typedef unsigned short U;
 
 struct TIME_INFO {// ??? ???? ?????? ???? ???? int (????????, ??? scanf)
   U32 YYYY, MM, DD, w, hh, mm, ss, ns;
@@ -60,6 +61,7 @@ U64 nanotime();
 void stdout_printf(char* fmt, ...);
 void print(char* fmt, ...);
 
+int str2ip4(const char * dst, IP4 ip);
 int utc2str(char* dst, int cbDstMax, U64 utc);
 int mac2str(char* dst, int cbDstMax, MAC mac);
 bool str2mac(MAC &dst, char* src, int cbSrc=-1);
@@ -71,6 +73,19 @@ __inline int socket_NONBLOCK(int af, int type, int protocol) {
   int fd = socket(af, type, protocol); DWORD dw = 1; ioctlsocket(fd, FIONBIO, &dw); return fd;
 }
 #endif
+
+struct pckt{
+    MAC srcMAC, dstMAC;
+    IP4 srcIP, dstIP;
+    int srcPORT, dstPORT;
+    int size, pckt_per_s, duration;
+    pckt(): srcPORT(5850), dstPORT(5850), size(1024), pckt_per_s(1), duration(1) {}
+};
+
+struct measurement{
+    int seq;
+};
+
 
 class WaitSystemCore;
 class WaitSystem {public:

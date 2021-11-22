@@ -5,6 +5,34 @@
 #include "l2_transport_linux.h"
 #include "global_setup_linux.h"
 
+struct ethheader{
+    MAC dst;
+    MAC src;
+    U16 protocol;
+};
+
+struct ipheader {
+    unsigned char  ihl:5, ver:4;
+    unsigned char           tos;
+    unsigned short int      len;
+    unsigned short int    ident;
+    unsigned char          flag;
+    unsigned short int   offset;
+    unsigned char           ttl;
+    unsigned char      protocol;
+    unsigned short int    check;
+    IP4                sourceip;
+    IP4                  destip;
+
+};
+
+struct udpheader {
+    unsigned short int src;
+    unsigned short int dst;
+    unsigned short int len;
+    unsigned short int check;
+
+};
 
 class Packetizer{public:
     virtual ~Packetizer() {}
@@ -13,6 +41,7 @@ class Packetizer{public:
     class Queue_prx: public WaitSystem::Queue {public:
     }* rx;
     class Queue_ptx: public WaitSystem::Queue {public:
+        virtual int send(int seq) = 0;
     }* tx;
     class Queue_psent: public WaitSystem::Queue {public:
     }* sent;
