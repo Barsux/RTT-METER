@@ -113,7 +113,6 @@ public:
 
         short status = l2_transport_tx->send(msg);
         if (status > 0) print("PACKET SENT!");
-        else print("Fuck up!");
 
 
     }
