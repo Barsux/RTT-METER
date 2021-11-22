@@ -1,10 +1,10 @@
 #include "global_setup_linux.h"
 
-class Global_setupObject: public WaitSystem::Module{
+class Global_setupObject: public WaitSystem::Module, public Global_setup{
 public:
     char * path;
     bool setted;
-    class Set: public Queue_toSet {public:
+    class Set : public Queue_toSet {public:
         Global_setupObject &base;
         Set(Global_setupObject &base): base(base){}
         struct settings get_values(char * dir){
@@ -12,7 +12,7 @@ public:
         }
     } setup_set;
 
-    class Save: public Queue_toSave {public:
+    class Save : public Queue_toSave {public:
         Global_setupObject &base;
         Save(Global_setupObject &base): base(base){}
         int save_values(struct settings config){
@@ -21,7 +21,7 @@ public:
     } setup_save;
 
     Global_setupObject(WaitSystem* waitSystem): WaitSystem::Module(waitSystem)
-            ,setup(setup), setted(false),path("cfg.json"), setup_set(*this), setup_save(*this)
+            , setted(false), path("cfg.json"), setup_set(*this), setup_save(*this)
     {
         module_debug = "File_Managment";
         save = &setup_save;
@@ -40,8 +40,6 @@ public:
 
     void evaluate(){
         if(!setted){
-            if(setup.path != path) path = setup.path;
-            get_settings(path);
         }
     }
 };
