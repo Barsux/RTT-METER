@@ -23,7 +23,7 @@ public:
     Global_setupObject(WaitSystem* waitSystem): WaitSystem::Module(waitSystem)
             , setted(false), path("cfg.json"), setup_set(*this), setup_save(*this)
     {
-        module_debug = "File_Managment";
+        module_debug = "SETUP";
         save = &setup_save;
         set = &setup_set;
         enable_wait(save);
@@ -40,7 +40,10 @@ public:
 
     void evaluate(){
         if(!setted){
+            print("READY!");
+            setted = true;
         }
+
     }
 };
 Global_setup* new_Global_setup(WaitSystem* waitSystem){

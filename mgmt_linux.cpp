@@ -26,7 +26,7 @@ public:
     MgmtObject(WaitSystem* waitSystem, Mgmt::Setup &setup): WaitSystem::Module(waitSystem)
             , setup(setup), converted(false), mgmt_job(*this), mgmt_report(*this)
     {
-        module_debug = "Managment";
+        module_debug = "MGMT";
         job = &mgmt_job;
         report = &mgmt_report; enable_wait(report);
     }
@@ -42,13 +42,13 @@ public:
     }
     struct pckt convert(int argc, char **argv){
         struct pckt data;
-        print("Converted!");
         return data;
     }
     void evaluate(){
         if(!converted) {
             job->packet = convert(setup.argc, setup.argv);
             job->setReady();
+            print("READY!");
         }
     }
 

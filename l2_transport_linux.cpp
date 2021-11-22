@@ -31,7 +31,7 @@ public:
   L2Transport_Linux(WaitSystem* waitSystem, L2Transport::Setup &setup): WaitSystem::Module(waitSystem)
     , setup(setup), fd(), queue_rx(*this), queue_tx(*this)
   {
-    module_debug = "L2-TRANSPORT";
+    module_debug = "ETH";
     rx = &queue_rx; sent = &queue_sent;
     tx = &queue_tx; enable_wait(tx);
     flags |= evaluate_every_cycle;
@@ -64,7 +64,7 @@ public:
     i = 1; r = setsockopt(fd, SOL_SOCKET, SO_TIMESTAMPNS, (const char*)&i, sizeof(i));
     if (r<0) {print("set SO_TIMESTAMPNS errno=%i", errno); close(fd); fd = 0; return;}
 
-    print("OPEN DEVICE SUCCESS");
+    print("READY!");
   }
 
   int recv(U64 &utc_rx, void* dst, int cbDstMax) {

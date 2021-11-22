@@ -1,13 +1,12 @@
-
-#ifndef PACKAGER_H
-#define PACKAGER_H
+#ifndef PACKETIZER_H
+#define PACKETIZER_H
 
 #include "base.h"
 #include "l2_transport_linux.h"
 
 
-class Packager{public:
-    virtual ~Packager() {}
+class Packetizer{public:
+    virtual ~Packetizer() {}
     class Setup {public:
     };
     class Queue_prx: public WaitSystem::Queue {public:
@@ -24,4 +23,4 @@ class Packager{public:
 };
 
 
-#endif PACKAGER_H
+#endif PACKETIZER_H
