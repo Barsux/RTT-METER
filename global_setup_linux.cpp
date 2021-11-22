@@ -29,20 +29,14 @@ public:
         enable_wait(save);
     }
 
-    struct settings get_settings(char * path){
-        struct settings config;
-        return config;
-    }
-
-    int save_values(struct settings config){
-        BUNG;
-    }
-
     void evaluate(){
         if(!setted){
             print("READY!");
             setted = true;
         }
+        while (WaitSystem::Queue* queue = enum_ready_queues())
+            if(queue == timer)
+
 
     }
 };

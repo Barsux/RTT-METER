@@ -15,14 +15,21 @@ public:
     class Rx: public Queue_prx {public:
         PacketizerObject &base;
         Rx(PacketizerObject &base): base(base){}
+        int recv(){
+            return base.recv();
+        }
     } prx;
     class Tx: public Queue_ptx {public:
         PacketizerObject &base;
         Tx(PacketizerObject &base): base(base){}
+        int send(int seq){
+            return base.send(seq);
+        }
     } ptx;
     class Sent: public Queue_psent {public:
         PacketizerObject &base;
         Sent(PacketizerObject &base): base(base){}
+
     } psent;
 
     void attach_l2_transport(L2Transport::Queue_rx* rx, L2Transport::Queue_tx* tx, L2Transport::Queue_sent* sent) {
@@ -48,11 +55,19 @@ public:
         enable_wait(tx);
     }
 
+    int recv(){
+
+    }
+    int send(int seq){
+
+    }
+
     void evaluate(){
         if(!setted){
             print("READY!");
             setted = true;
         }
+
     }
 };
 Packetizer* new_Packetizer(WaitSystem* waitSystem, Packetizer::Setup &setup){
