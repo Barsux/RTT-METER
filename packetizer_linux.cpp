@@ -75,6 +75,7 @@ public:
         U8 buffer[packet.size];
         bzero(buffer, packet.size);
         //<ETH>
+        #pragma pack(push, 1)
         struct ethheader *eth = (struct ethheader *)(buffer);
         memcpy(eth->src, packet.srcMAC, 6);
         memcpy(eth->dst, packet.dstMAC, 6);
@@ -85,7 +86,7 @@ public:
         iphdr->ihl = 5;
         iphdr->ver = 4;
         iphdr->tos = 16;
-        iphdr->ident = htons(seq);
+        iphdr->ident = htons(10201);
         iphdr->ttl = 64;
         iphdr->protocol = 17;
         iphdr->sourceip = packet.srcIP;
@@ -108,6 +109,7 @@ public:
         udp->len = htons((packet.size - sizeof(struct ipheader) - sizeof(struct ethheader)));
         iphdr->len = htons(packet.size - sizeof(struct ipheader));
         iphdr->check = checksum((unsigned short*)(buffer + sizeof(struct ethheader)), (sizeof(struct ipheader)/2));
+        #pragma pack(pop)
         iovec iovec; iovec.iov_base = buffer; iovec.iov_len = packet.size;
         msghdr msg = {}; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
 
