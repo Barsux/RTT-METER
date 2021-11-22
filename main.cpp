@@ -3,7 +3,7 @@
 #include "l2_transport_linux.h"
 #include "mgmt_linux.h"
 #include "global_setup_linux.h"
-#include "packager_linux.h"
+#include "packetizer_linux.h"
 
 #pragma argsused
 int main(int argc, char **argv)
@@ -24,14 +24,15 @@ int main(int argc, char **argv)
 
   Global_setup* global_setup = new_Global_setup(waitSystem);
 
-  Packager::Setup packager_setup;
-  Packager* packager = new_Packager(waitSystem, packager_setup);
-  packager->attach_l2_transport(l2Transport->rx, l2Transport->tx, l2Transport->sent);
+  Packetizer::Setup packager_setup;
+  Packetizer* packetizer = new_Packetizer(waitSystem, packager_setup);
+  packetizer->attach_l2_transport(l2Transport->rx, l2Transport->tx, l2Transport->sent);
 
   mgmt->attach_Global_setup(global_setup->save, global_setup->set);
 
   core->attach_Global_setup(global_setup->save, global_setup->set);
   core->attach_mgmt(mgmt->job, mgmt->report);
+  core->attach_packetizer(packetizer->rx, packetizer->tx, packetizer->sent);
 
 
   waitSystem->run();
