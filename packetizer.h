@@ -3,6 +3,7 @@
 
 #include "base.h"
 #include "l2_transport_linux.h"
+#include "global_setup_linux.h"
 
 
 class Packetizer{public:
@@ -19,6 +20,11 @@ class Packetizer{public:
             L2Transport::Queue_rx*   l2_transport_rx,
             L2Transport::Queue_tx*   l2_transport_tx,
             L2Transport::Queue_sent* sent
+    ) = 0;
+
+    virtual void attach_Global_setup(
+            Global_setup::Queue_toSave* setup_save,
+            Global_setup::Queue_toSet* setup_set
     ) = 0;
 };
 

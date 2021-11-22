@@ -27,8 +27,10 @@ int main(int argc, char **argv)
   Packetizer::Setup packager_setup;
   Packetizer* packetizer = new_Packetizer(waitSystem, packager_setup);
   packetizer->attach_l2_transport(l2Transport->rx, l2Transport->tx, l2Transport->sent);
+  packetizer->attach_Global_setup(global_setup->save, global_setup->set);
 
   mgmt->attach_Global_setup(global_setup->save, global_setup->set);
+
 
   core->attach_Global_setup(global_setup->save, global_setup->set);
   core->attach_mgmt(mgmt->job, mgmt->report);
