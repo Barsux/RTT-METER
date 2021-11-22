@@ -14,7 +14,7 @@ struct ethheader{
 };
 
 struct ipheader {
-    unsigned char    ihl : 4,   ver : 4;
+    unsigned char   ihl:4,ver:4;
     unsigned char           tos;
     unsigned short int      len;
     unsigned short int    ident;
