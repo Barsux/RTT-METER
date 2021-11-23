@@ -11,9 +11,7 @@ public:
     class Job: public Queue_job {public:
         MgmtObject &base;
         Job(MgmtObject &base): base(base){}
-        struct pckt convert(int argc, char **argv) {
-            return base.convert(argc,  argv);
-        }
+        struct pckt packet;
     } mgmt_job;
 
     class Report: public Queue_report {public:
@@ -42,6 +40,19 @@ public:
     }
     struct pckt convert(int argc, char **argv){
         struct pckt data;
+        if(argc == 7){
+            data.is_server = false;
+            str2mac(data.srcMAC, argv[1]);
+            str2mac(data.dstMAC, argv[2]);
+            data.srcIP = inet_addr(argv[3]);
+            data.dstIP = inet_addr(argv[4]);
+            str2int(data.size, argv[5]);
+            str2int(data.pckt_per_s, argv[6]);
+            str2int(data.duration, argv[7]);
+        }
+        else{
+            data.is_server = true;
+        }
         return data;
     }
     void evaluate(){
