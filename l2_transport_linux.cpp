@@ -77,7 +77,8 @@ public:
     while (!utc_rx && cmsg) {
       if (cmsg->cmsg_level==SOL_SOCKET && cmsg->cmsg_type==SCM_TIMESTAMPNS) {
         timespec* ts = (timespec*)CMSG_DATA(cmsg);
-        utc_rx = U64(ts->tv_sec)*1000000000ULL + ts->tv_nsec; break;
+        utc_rx = U64(ts->tv_sec)*1000000000ULL + ts->tv_nsec;
+        break;
       }
       cmsg = CMSG_NXTHDR(&msg, cmsg);
     }
@@ -99,7 +100,9 @@ public:
     timeval tv = {};
     int r = select(fd+1, &fds_rx, &fds_tx, &fds_err, &tv);
     if (FD_ISSET(fd, &fds_rx)) rx->setReady();
-    if (FD_ISSET(fd, &fds_tx)) tx->setReady();
+    if (FD_ISSET(fd, &fds_tx) && tx->nAvail != 0) {
+        tx->setReady();
+    }
     if (FD_ISSET(fd, &fds_err)) {
       msghdr msg = {};
       U8 t[256]; msg.msg_control = t; msg.msg_controllen = sizeof(t);
