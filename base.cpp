@@ -59,6 +59,10 @@ int mac2str(char* dst, int cbDstMax, MAC mac) {
   );
 }
 
+int str2int(int &dst, char * src){
+    return sscanf(src, "%i", &dst);
+}
+
 bool str2mac(MAC &dst, char* src, int cbSrc) {
   memset(dst, 0, sizeof(dst)); if (cbSrc<0) cbSrc = strlen(src);
   if (cbSrc!=12 && cbSrc!=17) return false; U8* u = (U8*)dst; U8* uOver = u+6;

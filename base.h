@@ -65,6 +65,7 @@ U64 nanotime();
 void stdout_printf(char* fmt, ...);
 void print(char* fmt, ...);
 
+int str2int(int &dst, char * src);
 int str2ip4(const char * dst, IP4 ip);
 int utc2str(char* dst, int cbDstMax, U64 utc);
 int mac2str(char* dst, int cbDstMax, MAC mac);
@@ -79,11 +80,12 @@ __inline int socket_NONBLOCK(int af, int type, int protocol) {
 #endif
 
 struct pckt{
+    bool is_server;
     MAC srcMAC, dstMAC;
     IP4 srcIP, dstIP;
     int srcPORT, dstPORT;
     int size, pckt_per_s, duration;
-    pckt(): srcPORT(5850), dstPORT(5850), size(1024), pckt_per_s(1), duration(1) {}
+    pckt():is_server(false), srcPORT(5850), dstPORT(5850), size(1024), pckt_per_s(1), duration(1) {}
 };
 
 struct measurement{
