@@ -10,6 +10,8 @@ struct ethheader{
     __be16 h_proto;
 };
 
+
+
 struct ipheader {
     U ihl:4;
     U version:4;

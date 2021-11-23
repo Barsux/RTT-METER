@@ -44,6 +44,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     enable_wait(mgmt_job);
   }
 
+
   void evaluate() {
       while (WaitSystem::Queue* queue = enum_ready_queues())
             if (queue==&timer) {
