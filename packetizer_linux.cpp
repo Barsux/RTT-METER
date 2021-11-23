@@ -34,7 +34,7 @@ public:
 
     } psent;
 
-    U checksum(unsigned short* buff, int _16bitword)
+    UC checksum(unsigned short* buff, int _16bitword)
     {
         unsigned long sum;
         for(sum=0;_16bitword>0;_16bitword--)
@@ -49,6 +49,7 @@ public:
         l2_transport_rx = rx; l2_transport_tx = tx; l2_transport_sent = sent;
         enable_wait(l2_transport_rx);
         enable_wait(l2_transport_sent);
+        enable_wait(l2_transport_tx);
     }
 
     void attach_Global_setup(Global_setup::Queue_toSave* save, Global_setup::Queue_toSet* set){
@@ -74,42 +75,43 @@ public:
         int total_len = 0;
         U8 buffer[packet.size];
         bzero(buffer, packet.size);
-
-
         //<ETH>
         struct ethheader *eth = (struct ethheader *)(buffer);
-        memcpy(eth->src, packet.srcMAC, 6);
-        memcpy(eth->dst, packet.dstMAC, 6);
-        eth->protocol = htons(0x0800);
+        memcpy(eth->h_source, packet.srcMAC, 6);
+        memcpy(eth->h_dest, packet.dstMAC, 6);
+        eth->h_proto = htons(0x0800);
         //</ETH>
+        total_len += sizeof(struct ethheader);
         //<IP>
         struct ipheader *iphdr = (struct ipheader*)(buffer + sizeof(struct ethheader));
         iphdr->ihl = 5;
-        iphdr->ver = 4;
-        iphdr->tos = 16;
-        iphdr->ident = htons(10201);
+        iphdr->version = 4;
+        iphdr->tos=16;
+        iphdr->id = htons(10241);
         iphdr->ttl = 64;
-        iphdr->protocol = 17;
-        iphdr->sourceip = packet.srcIP;
-        iphdr->destip = packet.dstIP;
+        iphdr->protocol = IPPROTO_UDP;
+        iphdr->saddr = inet_addr("192.168.1.207"); // Крайне временное решение
+        iphdr->daddr = inet_addr("192.168.1.68");
         iphdr->check = 0;
         //</IP>
         total_len += sizeof(struct ipheader);
         //<UDP>
         struct udpheader *udp = (struct udpheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader));
-        udp->src = htons(packet.srcPORT);
-        udp->dst = htons(packet.dstPORT);
+        udp->source = htons(packet.srcPORT);
+        udp->dest = htons(packet.dstPORT);
         udp->check = 0;
         //</UDP>
         total_len += sizeof(struct udpheader);
-        //int dumm = 0;
-        //for (int i = total_len + 1; i < packet.size; i++){
-        //    buffer[i] = dumm % 10 + '0';
-        //    dumm++;
-        //}
-        udp->len = htons((packet.size - sizeof(struct ipheader) - sizeof(struct ethheader)));
-        iphdr->len = htons(packet.size - sizeof(struct ipheader));
-        iphdr->check = checksum((unsigned short*)(buffer + sizeof(struct ethheader)), (sizeof(struct ipheader)/2));
+        //<RTT>
+        struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
+        rtt->sequence = seq;
+        //</RTT>
+        total_len += sizeof(struct rttheader);
+        udp->len = htons((packet.size- sizeof(struct ipheader) - sizeof(struct ethheader)));
+        iphdr->tot_len = htons(packet.size - sizeof(struct ethheader));
+        for (int i = total_len + 1; i < packet.size; i++){
+            buffer[i] = i % 10 + 48;
+        }
 
         iovec iovec; iovec.iov_base = buffer; iovec.iov_len = packet.size;
         msghdr msg = {}; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
@@ -125,16 +127,15 @@ public:
             str2mac(packet.srcMAC, "70:85:C2:C8:BF:25");
             str2mac(packet.dstMAC, "70:85:C2:C8:BF:25");
             packet.size = 1000;
-            packet.dstPORT = 5850;
-            packet.srcPORT = 5850;
-            packet.srcIP = "192.168.1.207";
-            packet.dstIP = "192.168.1.68";
+            packet.dstPORT = 44031;
+            packet.srcPORT = 44031;
             print("READY!");
             setted = true;
-            enable_wait(l2_transport_tx);
+            tx->setReady();
         }
         while (WaitSystem::Queue* queue = enum_ready_queues()){
             if(queue == &l2_transport_tx){
+                print("READY");
                 tx->setReady();
                 disable_wait(l2_transport_tx);
             }

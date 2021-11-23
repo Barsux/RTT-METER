@@ -18,6 +18,7 @@
 #include <netinet/ip_icmp.h>
 #include <netinet/udp.h>
 #include <netinet/ip.h>
+#include <netinet/ether.h>
 #include <net/if.h>
 #include <sys/ioctl.h>
 #include <sys/stat.h>
@@ -42,7 +43,9 @@ typedef uint8_t U8;
 typedef U64 UTC;
 typedef U8 MAC[6];
 typedef U32 IP4;
-typedef unsigned short U;
+typedef unsigned short US;
+typedef unsigned char UC;
+typedef unsigned int U;
 
 struct TIME_INFO {// ??? ???? ?????? ???? ???? int (????????, ??? scanf)
   U32 YYYY, MM, DD, w, hh, mm, ss, ns;

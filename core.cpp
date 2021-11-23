@@ -2,8 +2,8 @@
 
 class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
+  int seq;
   struct measurement measure;
-  bool dumm;
   //Очереди mgmt
   Mgmt::Queue_job*                  mgmt_job;
   Mgmt::Queue_report*            mgmt_report;
@@ -17,7 +17,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup), dumm(false), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+    , setup(setup) , seq(1), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
     module_debug = "CORE";
   }
@@ -45,9 +45,6 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   }
 
   void evaluate() {
-      if (!dumm) {
-          packetizer_tx->send(1);
-      }
       while (WaitSystem::Queue* queue = enum_ready_queues())
             if (queue==&timer) {
                 print("TIMER");
@@ -57,8 +54,10 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 mgmt_job->clear();
             }
             else if(queue==&packetizer_tx) {
-                packetizer_tx->send(1);
-                disable_wait(packetizer_tx);
+                print("PACKETIZER TX");
+                packetizer_tx->send(seq);
+                seq++;
+                packetizer_tx->clear();
             }
         }
 };
