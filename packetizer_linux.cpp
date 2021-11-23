@@ -67,6 +67,7 @@ public:
         tx = &ptx;
         sent = &psent;
         enable_wait(tx);
+        flags |= evaluate_every_cycle;
     }
 
     int recv(){
