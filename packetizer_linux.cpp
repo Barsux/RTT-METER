@@ -60,13 +60,14 @@ public:
     }
 
     PacketizerObject(WaitSystem* waitSystem, Packetizer::Setup &setup): WaitSystem::Module(waitSystem)
-            , setted(false) , ready(false), setup(setup), prx(*this), ptx(*this), psent(*this)
+            , setted(false) , ready(false), setup(setup), prx(*this), ptx(*this), psent(*this), setup_set(), setup_save()
     {
         module_debug = "PACKETIZER";
         rx = &prx;
         tx = &ptx;
         sent = &psent;
         enable_wait(tx);
+        enable_wait(rx);
         flags |= evaluate_every_cycle;
     }
 
@@ -82,9 +83,8 @@ public:
         memcpy(eth->h_source, packet.srcMAC, 6);
         memcpy(eth->h_dest, packet.dstMAC, 6);
         eth->h_proto = htons(0x0800);
-        //</ETH>
         total_len += sizeof(struct ethheader);
-        //<IP>
+
         struct ipheader *iphdr = (struct ipheader*)(buffer + sizeof(struct ethheader));
         iphdr->ihl = 5;
         iphdr->version = 4;
@@ -92,22 +92,19 @@ public:
         iphdr->id = htons(10241);
         iphdr->ttl = 64;
         iphdr->protocol = IPPROTO_UDP;
-        iphdr->saddr = inet_addr("192.168.1.207"); // Крайне временное решение
-        iphdr->daddr = inet_addr("192.168.1.68");
+        iphdr->saddr = packet.srcIP;
+        iphdr->daddr = packet.dstIP;
         iphdr->check = 0;
-        //</IP>
         total_len += sizeof(struct ipheader);
-        //<UDP>
+
         struct udpheader *udp = (struct udpheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader));
         udp->source = htons(packet.srcPORT);
         udp->dest = htons(packet.dstPORT);
         udp->check = 0;
-        //</UDP>
         total_len += sizeof(struct udpheader);
-        //<RTT>
+
         struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
         rtt->sequence = seq;
-        //</RTT>
         total_len += sizeof(struct rttheader);
         udp->len = htons((packet.size- sizeof(struct ipheader) - sizeof(struct ethheader)));
         iphdr->tot_len = htons(packet.size - sizeof(struct ethheader));
@@ -125,21 +122,20 @@ public:
     }
 
     void evaluate(){
-        if(!setted){
-            str2mac(packet.srcMAC, "70:85:C2:C8:BF:25");
-            str2mac(packet.dstMAC, "70:85:C2:C8:BF:25");
-            packet.size = 1000;
-            packet.dstPORT = 44031;
-            packet.srcPORT = 44031;
-            print("READY!");
-            setted = true;
-            tx->setReady();
-        }
         while (WaitSystem::Queue* queue = enum_ready_queues()){
-            if(queue == &l2_transport_tx){
+            if(queue == l2_transport_tx && !setted){
                 print("READY");
                 tx->setReady();
                 disable_wait(l2_transport_tx);
+            }
+            else if(queue == rx){
+                packet = rx->packet;
+                print("I get values");
+                if(packet.is_server){
+                    print("I am server!");
+                }
+                rx->clear();
+                setted = true;
             }
         }
 

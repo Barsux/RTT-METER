@@ -11,7 +11,9 @@ public:
     class Job: public Queue_job {public:
         MgmtObject &base;
         Job(MgmtObject &base): base(base){}
-        struct pckt packet;
+        struct pckt convert(int argc, char **argv) {
+            return base.convert(argc,  argv);
+        }
     } mgmt_job;
 
     class Report: public Queue_report {public:
@@ -24,7 +26,7 @@ public:
     MgmtObject(WaitSystem* waitSystem, Mgmt::Setup &setup): WaitSystem::Module(waitSystem)
             , setup(setup), converted(false), mgmt_job(*this), mgmt_report(*this)
     {
-        module_debug = "MGMT";
+        module_debug = "Managment";
         job = &mgmt_job;
         report = &mgmt_report; enable_wait(report);
     }
@@ -40,8 +42,8 @@ public:
     }
     struct pckt convert(int argc, char **argv){
         struct pckt data;
-        if(argc == 7){
-            data.is_server = false;
+        print("Converted!");
+        if(argc == 8){
             str2mac(data.srcMAC, argv[1]);
             str2mac(data.dstMAC, argv[2]);
             data.srcIP = inet_addr(argv[3]);
@@ -51,6 +53,7 @@ public:
             str2int(data.duration, argv[7]);
         }
         else{
+            printf("%d\n", argc);
             data.is_server = true;
         }
         return data;
@@ -59,7 +62,6 @@ public:
         if(!converted) {
             job->packet = convert(setup.argc, setup.argv);
             job->setReady();
-            print("READY!");
         }
     }
 

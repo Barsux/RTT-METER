@@ -100,9 +100,7 @@ public:
     timeval tv = {};
     int r = select(fd+1, &fds_rx, &fds_tx, &fds_err, &tv);
     if (FD_ISSET(fd, &fds_rx)) rx->setReady();
-    if (FD_ISSET(fd, &fds_tx) && tx->nAvail != 0) {
-        tx->setReady();
-    }
+    if (FD_ISSET(fd, &fds_tx))tx->setReady();
     if (FD_ISSET(fd, &fds_err)) {
       msghdr msg = {};
       U8 t[256]; msg.msg_control = t; msg.msg_controllen = sizeof(t);

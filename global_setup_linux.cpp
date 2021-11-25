@@ -39,7 +39,8 @@ public:
             print("READY!");
             setted = true;
         }
-        while (WaitSystem::Queue* queue = enum_ready_queues()){}
+        while (WaitSystem::Queue* queue = enum_ready_queues()){
+        }
     }
 };
 Global_setup* new_Global_setup(WaitSystem* waitSystem){

@@ -3,6 +3,7 @@
 class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
   int seq;
+  bool can_send;
   struct measurement measure;
   //Очереди mgmt
   Mgmt::Queue_job*                  mgmt_job;
@@ -17,11 +18,13 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup) , seq(1), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+    , setup(setup),can_send(false) , seq(1), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
     module_debug = "CORE";
+    flags |= evaluate_every_cycle;
   }
   WaitSystem::Queue timer;
+
 
   void attach_Global_setup(Global_setup::Queue_toSave* save, Global_setup::Queue_toSet* set){
     setup_set = set; setup_save = save;
@@ -36,6 +39,8 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     packetizer_sent = sent;
     enable_wait(packetizer_rx); enable_wait(packetizer_sent);
       enable_wait(packetizer_tx);
+      waitSystem->enable_wait(this, &timer);
+      waitSystem->start_timer(&timer, 5000000000ULL);
   }
 
   void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
@@ -47,18 +52,22 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
   void evaluate() {
       while (WaitSystem::Queue* queue = enum_ready_queues())
-            if (queue==&timer) {
-                print("TIMER");
-            }
-            else if (queue==&mgmt_job){
-                print("Accepted convertable values!");
+            if (queue==mgmt_job) {
+                packetizer_rx->packet = mgmt_job->packet;
                 mgmt_job->clear();
+                packetizer_rx->setReady();
+                print("Accepted convertable values");
             }
-            else if(queue==&packetizer_tx) {
-                print("PACKETIZER TX");
+            else if(queue == packetizer_tx){
+                can_send = true;
+                print("I can send");
+                disable_wait(packetizer_tx);
+            }
+            else if(queue == &timer && can_send){
                 packetizer_tx->send(seq);
                 seq++;
-                packetizer_tx->clear();
+                packetizer_tx->setReady();
+                can_send = false;
             }
         }
 };

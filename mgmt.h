@@ -9,7 +9,7 @@ class Mgmt{public:
     virtual ~Mgmt() {}
     class Setup {public:
         int argc;
-        char* argv[];
+        char * argv[8];
     };
     class Queue_job: public WaitSystem::Queue {public:
         struct pckt packet;

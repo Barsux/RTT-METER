@@ -12,11 +12,16 @@ int main(int argc, char **argv)
 
   Core::Setup coreSetup;
   Core* core = new_Core(waitSystem, coreSetup);
-
   Mgmt::Setup mgmtSetup;
-  memcpy(mgmtSetup.argv, argv, sizeof(argv));
-  mgmtSetup.argc = argc;
+  if(argc == 8){
+      for(int i = 1; i < 8; i++){
+          mgmtSetup.argv[i] = argv[i];
+      }
+      mgmtSetup.argc = argc;
+  }
   Mgmt* mgmt = new_Mgmt(waitSystem, mgmtSetup);
+
+  print("%s", argv[5]);
 
   L2Transport::Setup l2Transport_setup;
   l2Transport_setup.physicalId = "enp4s0";

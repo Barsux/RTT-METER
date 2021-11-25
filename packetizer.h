@@ -10,6 +10,7 @@ class Packetizer{public:
     class Setup {public:
     };
     class Queue_prx: public WaitSystem::Queue {public:
+        struct pckt packet;
     }* rx;
     class Queue_ptx: public WaitSystem::Queue {public:
         virtual int send(int seq) = 0;
