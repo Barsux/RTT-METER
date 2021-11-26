@@ -1,5 +1,4 @@
-cmp
-run
+
 .idea/misc.xml
 cmake-build-debug/
 a.out
