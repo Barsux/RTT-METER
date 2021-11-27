@@ -67,8 +67,9 @@ void print(char* fmt, ...);
 
 int str2int(int &dst, char * src);
 int str2ip4(const char * dst, IP4 ip);
+int ip42str(char * dst, IP4 ip);
 int utc2str(char* dst, int cbDstMax, U64 utc);
-int mac2str(char* dst, int cbDstMax, MAC mac);
+int mac2str(char* dst, MAC mac);
 bool str2mac(MAC &dst, char* src, int cbSrc=-1);
 
 #ifdef __linux__

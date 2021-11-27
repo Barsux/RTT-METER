@@ -53,14 +53,22 @@ int str2ip4 (const char * dst, IP4 ip)
     }return 0;
 }
 
-int mac2str(char* dst, int cbDstMax, MAC mac) {
-  return snprintf(dst, cbDstMax, "%02x:%02x:%02x:%02x:%02x:%02x"
+int mac2str(char* dst, MAC mac) {
+  return snprintf(dst, 17, "%02x:%02x:%02x:%02x:%02x:%02x"
     , (U32)mac[0], (U32)mac[1], (U32)mac[2], (U32)mac[3], (U32)mac[4], (U32)mac[5]
   );
 }
 
 int str2int(int &dst, char * src){
     return sscanf(src, "%i", &dst);
+}
+
+int ip42str(char * dst, IP4 ip){
+    struct sockaddr_in sa;
+    memset(&sa, 0, sizeof(sa));
+    sa.sin_addr.s_addr = ip;
+    strncpy(dst, inet_ntoa(sa.sin_addr), 15);
+    return 1;
 }
 
 bool str2mac(MAC &dst, char* src, int cbSrc) {

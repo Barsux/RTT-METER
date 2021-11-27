@@ -33,6 +33,7 @@ struct udpheader {
 };
 
 struct rttheader {
+    U8 rttproto;
     U32 sequence;
 };
 

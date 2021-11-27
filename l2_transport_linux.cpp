@@ -14,8 +14,8 @@ public:
     L2Transport_Linux &base;
     Rx(L2Transport_Linux &base): base(base) {
     }
-    int recv(U64 &utc_rx, void* dst, int cbDstMax) {
-      return base.recv(utc_rx, dst, cbDstMax);
+    int recv(struct msghdr &msg) {
+      return base.recv(msg);
     }
   } queue_rx;
   class Tx: public Queue_tx {public:
@@ -67,22 +67,9 @@ public:
     print("READY!");
   }
 
-  int recv(U64 &utc_rx, void* dst, int cbDstMax) {
-    iovec iovec; iovec.iov_base = dst; iovec.iov_len = cbDstMax;
-    msghdr msg; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
-    sockaddr_ll sa_ll; msg.msg_name = &sa_ll; msg.msg_namelen = sizeof(sa_ll);
-    U8 t[256]; msg.msg_control = t; msg.msg_controllen = sizeof(t); msg.msg_flags = 0;
-    int r = recvmsg(fd, &msg, 0); if (r<=0) return -1;
-    cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); utc_rx = 0;
-    while (!utc_rx && cmsg) {
-      if (cmsg->cmsg_level==SOL_SOCKET && cmsg->cmsg_type==SCM_TIMESTAMPNS) {
-        timespec* ts = (timespec*)CMSG_DATA(cmsg);
-        utc_rx = U64(ts->tv_sec)*1000000000ULL + ts->tv_nsec;
-        break;
-      }
-      cmsg = CMSG_NXTHDR(&msg, cmsg);
-    }
-    return r;
+  int recv(struct msghdr &msg) {
+    int r = recvmsg(fd, &msg, 0);
+    return r>=0? r: -1;
   }
 
   int send(struct msghdr msg) {

@@ -3,6 +3,7 @@
 class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
   int seq;
+  struct pckt packet;
   bool can_send;
   struct measurement measure;
   //Очереди mgmt
@@ -54,21 +55,30 @@ class CoreObject: public WaitSystem::Module, public Core {public:
       while (WaitSystem::Queue* queue = enum_ready_queues())
             if (queue==mgmt_job) {
                 packetizer_rx->packet = mgmt_job->packet;
+                packetizer_rx->packet = packet;
                 mgmt_job->clear();
                 packetizer_rx->setReady();
                 print("Accepted convertable values");
             }
             else if(queue == packetizer_tx){
                 can_send = true;
-                print("I can send");
-                disable_wait(packetizer_tx);
             }
-            else if(queue == &timer && can_send){
+            else if(queue == &timer){
+                print("timer");
                 packetizer_tx->send(seq);
                 seq++;
-                packetizer_tx->setReady();
-                can_send = false;
             }
+            //else if(queue == packetizer_rx){
+            //    int sequence; U64 ts;
+            //    int r = packetizer_rx->recv(sequence, ts);
+            //    if (r < 0) {
+            //    }
+            //    else{
+            //        char t[128]; utc2str(t, sizeof(t), ts);
+            //        print("RECV L2 PACKET OF SEQUENCE = %d AT %s\n",sequence, t);
+            //    }
+//
+            //}
         }
 };
 
