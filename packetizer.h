@@ -17,6 +17,7 @@ class Packetizer{public:
         virtual int send(int seq) = 0;
     }* tx;
     class Queue_psent: public WaitSystem::Queue {public:
+        U64 utc_sent;
     }* sent;
     virtual void attach_l2_transport(
             L2Transport::Queue_rx*   l2_transport_rx,

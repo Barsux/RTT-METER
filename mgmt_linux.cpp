@@ -53,7 +53,7 @@ public:
             str2int(data.duration, argv[7]);
         }
         else{
-            printf("%d\n", argc);
+            print("I am server!");
             data.is_server = true;
         }
         return data;

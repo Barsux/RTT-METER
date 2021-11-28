@@ -10,7 +10,7 @@ class L2Transport {public:
     Setup(): physicalId() {}
   };
   class Queue_rx: public WaitSystem::Queue {public:
-    virtual int recv(struct msghdr &msg) = 0;
+    virtual int recv(void * dst, U64 &utc_rx, int maxsize) = 0;
   }* rx;
   class Queue_tx: public WaitSystem::Queue {public:
     virtual int send(struct msghdr msg) = 0;

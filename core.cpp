@@ -4,7 +4,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
   int seq;
   struct pckt packet;
-  bool can_send;
+  bool can_send, have_settings;
   struct measurement measure;
   //Очереди mgmt
   Mgmt::Queue_job*                  mgmt_job;
@@ -19,7 +19,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup),can_send(false) , seq(1), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+    , setup(setup),can_send(false), have_settings(false) , seq(1), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
     module_debug = "CORE";
     flags |= evaluate_every_cycle;
@@ -38,10 +38,6 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     packetizer_tx = tx;
     packetizer_rx = rx;
     packetizer_sent = sent;
-    enable_wait(packetizer_rx); enable_wait(packetizer_sent);
-      enable_wait(packetizer_tx);
-      waitSystem->enable_wait(this, &timer);
-      waitSystem->start_timer(&timer, 5000000000ULL);
   }
 
   void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
@@ -50,35 +46,50 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     enable_wait(mgmt_job);
   }
 
+  void begin_work(){
+      waitSystem->enable_wait(this, &timer);
+      waitSystem->start_timer(&timer, 1000000000ULL);
+      enable_wait(packetizer_rx); enable_wait(packetizer_sent); enable_wait(packetizer_tx);
+      have_settings = true;
+  }
 
   void evaluate() {
       while (WaitSystem::Queue* queue = enum_ready_queues())
-            if (queue==mgmt_job) {
-                packetizer_rx->packet = mgmt_job->packet;
-                packetizer_rx->packet = packet;
-                mgmt_job->clear();
-                packetizer_rx->setReady();
-                print("Accepted convertable values");
+            if(!have_settings){
+                if (queue==mgmt_job) {
+                    packetizer_rx->packet = mgmt_job->packet;
+                    packet = mgmt_job->packet;
+                    mgmt_job->clear();
+                    packetizer_rx->setReady();
+                    begin_work();
+                    print("Accepted convertable values");
+                    print("READY!");
+                }
             }
-            else if(queue == packetizer_tx){
-                can_send = true;
+            else{
+                if(queue == packetizer_tx){
+                    can_send = true;
+                }
+                else if(!packet.is_server && queue == &timer){
+                    packetizer_tx->send(seq);
+                    seq++;
+                    timer.clear();
+                }
+                else if(queue == packetizer_rx){
+                    int sequence; U64 ts;
+                    int r = packetizer_rx->recv(sequence, ts);
+                    if(r > 0){
+                        char t[128]; utc2str(t, sizeof(t), ts);
+                        print("RECV L2 PACKET OF SEQUENCE = %d AT %s\n",sequence, t);
+                    }
+                }
+                else if(queue == packetizer_sent){
+                    char t[128];
+                    utc2str(t, sizeof(t), packetizer_sent->utc_sent);
+                    print("SENT L2 PACKET OF SEQUENCE = %d AT %s", seq, t);
+                    packetizer_sent->clear();
+                }
             }
-            else if(queue == &timer){
-                print("timer");
-                packetizer_tx->send(seq);
-                seq++;
-            }
-            //else if(queue == packetizer_rx){
-            //    int sequence; U64 ts;
-            //    int r = packetizer_rx->recv(sequence, ts);
-            //    if (r < 0) {
-            //    }
-            //    else{
-            //        char t[128]; utc2str(t, sizeof(t), ts);
-            //        print("RECV L2 PACKET OF SEQUENCE = %d AT %s\n",sequence, t);
-            //    }
-//
-            //}
         }
 };
 
