@@ -7,6 +7,7 @@ public:
     bool setted;
     struct pckt packet;
     bool is_server;
+    bool have_values;
     L2Transport::Queue_rx*     l2_transport_rx;
     L2Transport::Queue_tx*     l2_transport_tx;
     L2Transport::Queue_sent*  l2_transport_sent;
@@ -17,7 +18,7 @@ public:
     class Rx: public Queue_prx {public:
         PacketizerObject &base;
         Rx(PacketizerObject &base): base(base){}
-        int recv(int &seq, U64 &tstmp){
+        int recv(int &seq, long &tstmp){
             return base.recv(seq, tstmp);
         }
     } prx;
@@ -59,7 +60,7 @@ public:
     }
 
     PacketizerObject(WaitSystem* waitSystem, Packetizer::Setup &setup): WaitSystem::Module(waitSystem)
-            , setted(false), setup(setup), prx(*this), ptx(*this), psent(*this), setup_set(), setup_save()
+            , setted(false), have_values(false), setup(setup), prx(*this), ptx(*this), psent(*this), setup_set(), setup_save()
     {
         module_debug = "PACKETIZER";
         rx = &prx;
@@ -105,6 +106,7 @@ public:
         struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
         rtt->rttproto = 5850;
         rtt->sequence = seq;
+        print("%d", rtt->sequence);
         total_len += sizeof(struct rttheader);
         udp->len = htons((packet.size- sizeof(struct ipheader) - sizeof(struct ethheader)));
         iphdr->tot_len = htons(packet.size - sizeof(struct ethheader));
@@ -115,40 +117,46 @@ public:
         iovec iovec; iovec.iov_base = buffer; iovec.iov_len = packet.size;
         msghdr msg = {}; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
 
-        short status = l2_transport_tx->send(msg) ;
+        short status = l2_transport_tx->send(msg, seq) ;
     }
 
-    int recv(int &seq, U64 &tstmp){
+    int recv(int &seq, long &tstmp){
         int MAXSIZE = 2048;
         int status;
-        U8 packet[MAXSIZE];
-        bool valid_packet = false;
-        status = l2_transport_rx->recv(packet, tstmp, MAXSIZE); if(status < 0) return -1;
+        U8 buffer[MAXSIZE];
+        bool valid_buffer = false;
+        status = l2_transport_rx->recv(buffer, tstmp, MAXSIZE); if(status < 0) return -1;
         __be16 ip_proto = htons(0x0800);
-        struct ethheader *eth = (struct ethheader *)(packet);
+        struct ethheader *eth = (struct ethheader *)(buffer);
         char srcMAC[17], dstMAC[17];
         char srcIP[15], dstIP[15];
         mac2str(srcMAC, eth->h_source);
         mac2str(dstMAC, eth->h_dest);
         if(eth->h_proto == ip_proto) {
-            struct ipheader *ip = (struct ipheader *) (packet + sizeof(struct ethheader));
+            struct ipheader *ip = (struct ipheader *) (buffer + sizeof(struct ethheader));
             ip42str(srcIP, ip->saddr);
             ip42str(dstIP, ip->daddr);
             if(ip->protocol == IPPROTO_UDP){
-                struct udpheader *uh = (struct udpheader *)(packet +sizeof(ethheader) + sizeof(ipheader));
+                struct udpheader *uh = (struct udpheader *)(buffer +sizeof(ethheader) + sizeof(ipheader));
                 short srcPORT, dstPORT;
                 srcPORT = ntohs(uh->source);
                 dstPORT = ntohs(uh->dest);
                 if(srcPORT == 5850 && dstPORT == 5850){
-                    valid_packet = true;
-                    struct rttheader *rtt = (struct rttheader *)(packet + sizeof(ethheader) + sizeof(ipheader) + sizeof(udpheader));
+                    valid_buffer = true;
+                    struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(ethheader) + sizeof(ipheader) + sizeof(udpheader));
                     seq = rtt->sequence;
-                    print("\nSource MAC  - %s\nDest MAC    - %s\nSource IP   - %s\nDest IP     - %s\nSource Port - %d\nDest Port   - %d\nSequence    - %d\n", srcMAC, dstMAC, srcIP, dstIP, srcPORT, dstPORT, seq);
+                    if(!have_values && packet.is_server){
+                        memcpy(packet.srcMAC, eth->h_dest, ETH_ALEN);
+                        memcpy(packet.dstMAC, eth->h_source, ETH_ALEN);
+                        packet.srcIP = ip->daddr;
+                        packet.dstIP = ip->saddr;
+                    }
+                    //print("\nSource MAC  - %s\nDest MAC    - %s\nSource IP   - %s\nDest IP     - %s\nSource Port - %d\nDest Port   - %d\nSequence    - %d\n", srcMAC, dstMAC, srcIP, dstIP, srcPORT, dstPORT, seq);
                     return 1;
                 }
             }
         }
-        if(!valid_packet) return -1;
+        if(!valid_buffer) return -1;
     }
 
 
@@ -174,6 +182,7 @@ public:
             else if(queue == l2_transport_sent){
                 l2_transport_sent->clear();
                 sent->utc_sent = l2_transport_sent->utc_sent;
+                sent->sequence = l2_transport_sent->sequence;
                 sent->setReady();
             }
         }

@@ -85,12 +85,15 @@ struct pckt{
     MAC srcMAC, dstMAC;
     IP4 srcIP, dstIP;
     int srcPORT, dstPORT;
-    int size, pckt_per_s, duration;
+    int size, pckt_per_s, duration, amount;
     pckt():is_server(false), srcPORT(5850), dstPORT(5850), size(1024), pckt_per_s(1), duration(1) {}
 };
 
 struct measurement{
-    int seq;
+    bool filled;
+    long incoming_message;
+    long upcoming_message;
+    measurement(): filled(){}
 };
 
 

@@ -11,13 +11,14 @@ class Packetizer{public:
     };
     class Queue_prx: public WaitSystem::Queue {public:
         struct pckt packet;
-        virtual int recv(int &seq, U64 &tstmp) = 0;
+        virtual int recv(int &seq, long &tstmp) = 0;
     }* rx;
     class Queue_ptx: public WaitSystem::Queue {public:
         virtual int send(int seq) = 0;
     }* tx;
     class Queue_psent: public WaitSystem::Queue {public:
         U64 utc_sent;
+        int sequence;
     }* sent;
     virtual void attach_l2_transport(
             L2Transport::Queue_rx*   l2_transport_rx,

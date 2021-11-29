@@ -9,12 +9,12 @@
 class L2Transport_Linux: public WaitSystem::Module, public L2Transport {
   L2Transport::Setup &setup;
 public:
-  int fd;
+  int fd, sequence;
   class Rx: public Queue_rx {public:
     L2Transport_Linux &base;
     Rx(L2Transport_Linux &base): base(base) {
     }
-      int recv(void * dst, U64 &utc_rx , int maxsize) {
+      int recv(void * dst, long &utc_rx , int maxsize) {
       return base.recv(dst, utc_rx, maxsize);
     }
   } queue_rx;
@@ -22,8 +22,8 @@ public:
     L2Transport_Linux &base;
     Tx(L2Transport_Linux &base): base(base) {
     }
-    int send(struct msghdr msg) {
-      return base.send(msg);
+    int send(struct msghdr msg, int seq) {
+      return base.send(msg, seq);
     }
   } queue_tx;
   Queue_sent queue_sent;
@@ -67,7 +67,7 @@ public:
     print("READY!");
   }
 
-  int recv(void * dst, U64 &utc_rx , int maxsize) {
+  int recv(void * dst, long &utc_rx , int maxsize) {
       iovec iovec; iovec.iov_base = dst; iovec.iov_len = maxsize;
       msghdr msg; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
       sockaddr_ll sa_ll; msg.msg_name = &sa_ll; msg.msg_namelen = sizeof(sa_ll);
@@ -77,14 +77,15 @@ public:
       while (!utc_rx && cmsg) {
           if (cmsg->cmsg_level==SOL_SOCKET && cmsg->cmsg_type==SCM_TIMESTAMPNS) {
               timespec* ts = (timespec*)CMSG_DATA(cmsg);
-              utc_rx = U64(ts->tv_sec)*1000000000ULL + ts->tv_nsec; break;
+              utc_rx = (ts->tv_sec)*1000000000 + ts->tv_nsec; break;
           }
           cmsg = CMSG_NXTHDR(&msg, cmsg);
       }
       return r;
   }
 
-  int send(struct msghdr msg) {
+  int send(struct msghdr msg, int seq) {
+    sequence = seq;
     int cb = sendmsg(fd, &msg, MSG_DONTWAIT);
     return cb>=0? cb: -1;
   }
@@ -108,7 +109,8 @@ public:
       while (!r && !sent->utc_sent && cmsg) {
         if (cmsg->cmsg_level==SOL_SOCKET && cmsg->cmsg_type==SCM_TIMESTAMPNS) {
           timespec* ts = (timespec*)CMSG_DATA(cmsg);
-          sent->utc_sent = U64(ts->tv_sec)*1000000000ULL + ts->tv_nsec;
+          sent->utc_sent = (ts->tv_sec)*1000000000 + ts->tv_nsec;
+          sent->sequence = sequence;
           sent->setReady(); break;
         }
         cmsg = CMSG_NXTHDR(&msg, cmsg);

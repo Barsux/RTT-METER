@@ -21,8 +21,6 @@ int main(int argc, char **argv)
   }
   Mgmt* mgmt = new_Mgmt(waitSystem, mgmtSetup);
 
-  print("%s", argv[5]);
-
   L2Transport::Setup l2Transport_setup;
   l2Transport_setup.physicalId = "enp4s0";
   L2Transport* l2Transport = new_L2Transport(waitSystem, l2Transport_setup);

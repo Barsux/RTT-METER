@@ -19,8 +19,8 @@ public:
     class Report: public Queue_report {public:
         MgmtObject &base;
         Report(MgmtObject &base): base(base){}
-        void report(){
-            return base.report_void();
+        void report(long measure[60000], int amount){
+            return base.report_void(measure, amount);
         }
     } mgmt_report;
     MgmtObject(WaitSystem* waitSystem, Mgmt::Setup &setup): WaitSystem::Module(waitSystem)
@@ -37,8 +37,28 @@ public:
         enable_wait(setup_set);
     }
 
-    void report_void(){
-
+    void report_void(long measure[60000], int amount){
+        report->clear();
+        long long int avg_rtt = 0;
+        long long int max_rtt = 0;
+        int loss_packets = 0;
+        for(int i = 0; i < amount; i++){
+            if(measure[i] != 0) {
+                avg_rtt += (int)measure[i];
+                if (measure[i] > max_rtt) max_rtt = (int)measure[i];
+                print("");
+                print("%lli", max_rtt);
+                print("");
+            }
+            else{
+                loss_packets++;
+            }
+        }
+        print("%li\t%li", avg_rtt, max_rtt);
+        long double avg_output = 0, max_output = 0;
+        avg_rtt = ((long double)avg_rtt) / 1000000;
+        print("%0.4f\t%0.4f", avg_rtt, max_rtt);
+        exit(EXIT_SUCCESS);
     }
     struct pckt convert(int argc, char **argv){
         struct pckt data;
@@ -51,6 +71,7 @@ public:
             str2int(data.size, argv[5]);
             str2int(data.pckt_per_s, argv[6]);
             str2int(data.duration, argv[7]);
+            data.amount = data.duration * data.pckt_per_s;
         }
         else{
             print("I am server!");
