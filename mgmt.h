@@ -15,7 +15,7 @@ class Mgmt{public:
         struct pckt packet;
     }* job;
     class Queue_report: public WaitSystem::Queue {public:
-        virtual void report(U64 measure[60000], int amount) = 0;
+        virtual void report(char * report) = 0;
     }* report;
     virtual void attach_Global_setup(
             Global_setup::Queue_toSave* setup_save,

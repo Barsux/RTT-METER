@@ -7,6 +7,13 @@
 #include "global_setup_linux.h"
 #include "packetizer_linux.h"
 
+struct measurement{
+    bool filled;
+    U64 incoming_message;
+    U64 upcoming_message;
+    measurement(): filled(){}
+};
+
 class Core {public:
   virtual ~Core() {}
   class Setup {public:

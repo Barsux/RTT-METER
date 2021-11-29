@@ -4,8 +4,8 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
   int seq;
   struct pckt packet;
+  struct measurement msmt[60000];
   bool can_send, have_settings;
-  U64 measure[60000];
   //Очереди mgmt
   Mgmt::Queue_job*                  mgmt_job;
   Mgmt::Queue_report*            mgmt_report;
@@ -21,7 +21,6 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
     , setup(setup),can_send(false), have_settings(false), seq(1), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
-    bzero(measure, 60000);
     module_debug = "CORE";
     flags |= evaluate_every_cycle;
   }
@@ -60,10 +59,28 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   void evaluate() {
       while (WaitSystem::Queue* queue = enum_ready_queues()){
             if(queue == &work) {
-                work.clear();
-                int step = 0;
                 have_settings = false;
-                mgmt_report->report(measure, packet.amount);
+                work.clear();
+                I4 packet_loss = 0;
+                I64 rtt_avg = 0, rtt_max = 0;
+                for(int i = 0; i < packet.amount; i++){
+                    I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
+                    if(delay > 0){
+                        rtt_avg += delay;
+                        if(delay > rtt_max) rtt_max = delay;
+                    }
+                    else{
+                        packet_loss++;
+                    }
+                }
+                char output[344];
+                snprintf(output, 344, "      _______________________________________________________________________________\n"
+                                                    "      Average RTT   Maximum RTT        Total loss packets     Percent of loss packets\n"
+                                                           "%12.4fmS%12.4fmS%12d               %12.3f%%\n"
+                                                    "      _______________________________________________________________________________\n",
+                                                    (double)(rtt_avg / packet.amount) / 1000000, (double) rtt_max / 1000000, packet_loss, packet_loss/ packet.amount * 100);
+                print("End measurement!");
+                mgmt_report->report(output);
             }
             if(!have_settings){
                 if (queue==mgmt_job) {
@@ -71,14 +88,13 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                     packetizer_rx->packet = mgmt_job->packet;
                     packet = mgmt_job->packet;
                     mgmt_job->clear();
-
                     packetizer_rx->setReady();
                     enable_wait(packetizer_rx); enable_wait(packetizer_sent); enable_wait(packetizer_tx);
                     have_settings = true;
-                    bzero(measure, packet.amount);
+                    bzero(msmt, packet.amount);
                     if(!packet.is_server) begin_work();
-                    print("Accepted convertable values");
                     print("READY!");
+                    print("Begin measurement!");
                 }
             }
             else{
@@ -109,29 +125,19 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                     if(queue == packetizer_rx){
                         int sequence; U64 ts;
                         int r = packetizer_rx->recv(sequence, ts);
-                        if(r > 0){
-                            //char t[128]; utc2str(t, sizeof(t), ts);
-                            if(measure[sequence] != 0){
-                                measure[sequence] = ts - measure[sequence];
-                            }
-                            //print("RECV L2 PACKET OF SEQUENCE = %d AT %s distance %Ld",sequence, t, measure[sequence]);
-                        }
+                        if(r > 0 && msmt[sequence].incoming_message == 0) msmt[sequence].incoming_message = ts;
                     }
                     else if(queue == &timer && can_send){
                         timer.clear();
+                        if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
                         int status  = packetizer_tx->send(seq); if(status < 0);
                         seq++;
                     }
                     else if(queue == packetizer_sent){
-                        //char t[128];
-                       // utc2str(t, sizeof(t), packetizer_sent->utc_sent);
                         U64 ts; int sq;
                         ts = packetizer_sent->utc_sent;
                         sq = packetizer_sent->sequence;
-                        if(measure[sq] == 0){
-                            measure[sq] = ts;
-                        }
-                        //print("SENT L2 PACKET OF SEQUENCE = %d AT %s distance %Ld", packetizer_sent->sequence, t, measure[sq]);
+                        if(msmt[sq].upcoming_message == 0) msmt[sq].upcoming_message = ts;
                         packetizer_sent->clear();
                     }
                 }

@@ -11,8 +11,8 @@ struct ethheader{
 };
 
 struct ipheader {
-    U ihl:4;
-    U version:4;
+    U4 ihl:4;
+    U4 version:4;
     U8 tos;
     U16 tot_len;
     U16 id;

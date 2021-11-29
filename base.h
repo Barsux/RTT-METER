@@ -41,12 +41,18 @@ typedef uint64_t U64;
 typedef uint32_t U32;
 typedef uint16_t U16;
 typedef uint8_t U8;
+typedef unsigned int U4;
+typedef unsigned short U2;
+typedef int64_t I64;
+typedef int32_t I32;
+typedef int16_t I16;
+typedef int8_t I8;
+typedef int I4;
+typedef short I2;
 typedef U64 UTC;
 typedef U8 MAC[6];
 typedef U32 IP4;
-typedef unsigned short US;
 typedef unsigned char UC;
-typedef unsigned int U;
 
 struct TIME_INFO {// ??? ???? ?????? ???? ???? int (????????, ??? scanf)
   U32 YYYY, MM, DD, w, hh, mm, ss, ns;
@@ -87,13 +93,6 @@ struct pckt{
     int srcPORT, dstPORT;
     int size, pckt_per_s, duration, amount;
     pckt():is_server(false), srcPORT(5850), dstPORT(5850), size(1024), pckt_per_s(1), duration(1) {}
-};
-
-struct measurement{
-    bool filled;
-    long incoming_message;
-    long upcoming_message;
-    measurement(): filled(){}
 };
 
 

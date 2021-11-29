@@ -19,8 +19,8 @@ public:
     class Report: public Queue_report {public:
         MgmtObject &base;
         Report(MgmtObject &base): base(base){}
-        void report(U64 measure[60000], int amount){
-            return base.report_void(measure, amount);
+        void report(char * report){
+            return base.report_void(report);
         }
     } mgmt_report;
     MgmtObject(WaitSystem* waitSystem, Mgmt::Setup &setup): WaitSystem::Module(waitSystem)
@@ -37,27 +37,9 @@ public:
         enable_wait(setup_set);
     }
 
-    void report_void(U64 measure[60000], int amount){
-        report->clear();
-        U64 avg_rtt = 0;
-        U64 max_rtt = 0;
-        int loss_packets = 0;
-        for(int i = 0; i < amount; i++){
-            if(measure[i] != 0) {
-                avg_rtt += measure[i];
-                print("%" PRIu64 "nS", measure[i]);
-                if (measure[i] > max_rtt) max_rtt = measure[i];
-            }
-            else{
-                loss_packets++;
-            }
-        }
-        print("MAX RTT:%" PRIu64 "nS", max_rtt);
-        //long double avg_output = 0, max_output = 0;
-        //avg_output = ((long double)avg_rtt/ amount) / 1000000;
-        //max_output = ((long double)max_rtt) / 1000000;
-        //printf("Average RTT:%0.5LfmS\nMAX RTT:%0.5LfmS\nTotal packet loss:%d\nPercent packet loss:%d%%", avg_output, max_output, loss_packets, loss_packets * 100 / amount);
-        //exit(EXIT_SUCCESS);
+    void report_void(char * report){
+        printf("%s", report);
+        exit(EXIT_SUCCESS);
     }
     struct pckt convert(int argc, char **argv){
         struct pckt data;

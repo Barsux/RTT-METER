@@ -1,3 +1,3 @@
 #/bin/bash
-g++ -Wall -Wfatal-errors -ffunction-sections -fdata-sections -Wl,--gc-sections -Wwrite-strings -Wreorder -fpermissive -fno-rtti -fno-exceptions -g base.cpp core.cpp l2_transport_linux.cpp main.cpp mgmt_linux.cpp global_setup_linux.cpp packetizer_linux.cpp && sudo ./a.out 70:85:c2:c8:bf:25 70:85:c2:c8:bf:25 192.168.1.207 192.168.1.27 1024 1000 20
+g++ -Wall -Wfatal-errors -ffunction-sections -fdata-sections -Wl,--gc-sections -Wwrite-strings -Wreorder -fpermissive -fno-rtti -fno-exceptions -g base.cpp core.cpp l2_transport_linux.cpp main.cpp mgmt_linux.cpp global_setup_linux.cpp packetizer_linux.cpp && sudo ./a.out 70:85:c2:c8:bf:25 70:85:c2:c8:bf:25 192.168.1.207 192.168.1.27 1024 500 120
 
