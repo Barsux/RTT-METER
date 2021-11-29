@@ -19,7 +19,7 @@ public:
     class Report: public Queue_report {public:
         MgmtObject &base;
         Report(MgmtObject &base): base(base){}
-        void report(long measure[60000], int amount){
+        void report(U64 measure[60000], int amount){
             return base.report_void(measure, amount);
         }
     } mgmt_report;
@@ -37,28 +37,27 @@ public:
         enable_wait(setup_set);
     }
 
-    void report_void(long measure[60000], int amount){
+    void report_void(U64 measure[60000], int amount){
         report->clear();
-        long long int avg_rtt = 0;
-        long long int max_rtt = 0;
+        U64 avg_rtt = 0;
+        U64 max_rtt = 0;
         int loss_packets = 0;
         for(int i = 0; i < amount; i++){
             if(measure[i] != 0) {
-                avg_rtt += (int)measure[i];
-                if (measure[i] > max_rtt) max_rtt = (int)measure[i];
-                print("");
-                print("%lli", max_rtt);
-                print("");
+                avg_rtt += measure[i];
+                print("%" PRIu64 "nS", measure[i]);
+                if (measure[i] > max_rtt) max_rtt = measure[i];
             }
             else{
                 loss_packets++;
             }
         }
-        print("%li\t%li", avg_rtt, max_rtt);
-        long double avg_output = 0, max_output = 0;
-        avg_rtt = ((long double)avg_rtt) / 1000000;
-        print("%0.4f\t%0.4f", avg_rtt, max_rtt);
-        exit(EXIT_SUCCESS);
+        print("MAX RTT:%" PRIu64 "nS", max_rtt);
+        //long double avg_output = 0, max_output = 0;
+        //avg_output = ((long double)avg_rtt/ amount) / 1000000;
+        //max_output = ((long double)max_rtt) / 1000000;
+        //printf("Average RTT:%0.5LfmS\nMAX RTT:%0.5LfmS\nTotal packet loss:%d\nPercent packet loss:%d%%", avg_output, max_output, loss_packets, loss_packets * 100 / amount);
+        //exit(EXIT_SUCCESS);
     }
     struct pckt convert(int argc, char **argv){
         struct pckt data;

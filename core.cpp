@@ -5,7 +5,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   int seq;
   struct pckt packet;
   bool can_send, have_settings;
-  long measure[60000];
+  U64 measure[60000];
   //Очереди mgmt
   Mgmt::Queue_job*                  mgmt_job;
   Mgmt::Queue_report*            mgmt_report;
@@ -88,7 +88,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 }
                 if(packet.is_server){
                     if(queue == packetizer_rx){
-                        int sequence; long ts;
+                        int sequence; U64 ts;
                         int r = packetizer_rx->recv(sequence, ts);
                         if(r > 0){
                             char t[128]; utc2str(t, sizeof(t), ts);
@@ -107,14 +107,14 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 }
                 else{
                     if(queue == packetizer_rx){
-                        int sequence; long ts;
+                        int sequence; U64 ts;
                         int r = packetizer_rx->recv(sequence, ts);
                         if(r > 0){
-                            char t[128]; utc2str(t, sizeof(t), ts);
+                            //char t[128]; utc2str(t, sizeof(t), ts);
                             if(measure[sequence] != 0){
                                 measure[sequence] = ts - measure[sequence];
                             }
-                            print("RECV L2 PACKET OF SEQUENCE = %d AT %s distance %d",sequence, t, measure[sequence]);
+                            //print("RECV L2 PACKET OF SEQUENCE = %d AT %s distance %Ld",sequence, t, measure[sequence]);
                         }
                     }
                     else if(queue == &timer && can_send){
@@ -123,15 +123,15 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                         seq++;
                     }
                     else if(queue == packetizer_sent){
-                        char t[128];
-                        utc2str(t, sizeof(t), packetizer_sent->utc_sent);
-                        long ts; int sq;
+                        //char t[128];
+                       // utc2str(t, sizeof(t), packetizer_sent->utc_sent);
+                        U64 ts; int sq;
                         ts = packetizer_sent->utc_sent;
                         sq = packetizer_sent->sequence;
                         if(measure[sq] == 0){
                             measure[sq] = ts;
                         }
-                        print("SENT L2 PACKET OF SEQUENCE = %d AT %s distance %d", packetizer_sent->sequence, t, measure[sq]);
+                        //print("SENT L2 PACKET OF SEQUENCE = %d AT %s distance %Ld", packetizer_sent->sequence, t, measure[sq]);
                         packetizer_sent->clear();
                     }
                 }

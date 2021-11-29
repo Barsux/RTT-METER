@@ -18,7 +18,7 @@ public:
     class Rx: public Queue_prx {public:
         PacketizerObject &base;
         Rx(PacketizerObject &base): base(base){}
-        int recv(int &seq, long &tstmp){
+        int recv(int &seq, U64 &tstmp){
             return base.recv(seq, tstmp);
         }
     } prx;
@@ -106,7 +106,6 @@ public:
         struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
         rtt->rttproto = 5850;
         rtt->sequence = seq;
-        print("%d", rtt->sequence);
         total_len += sizeof(struct rttheader);
         udp->len = htons((packet.size- sizeof(struct ipheader) - sizeof(struct ethheader)));
         iphdr->tot_len = htons(packet.size - sizeof(struct ethheader));
@@ -120,7 +119,7 @@ public:
         short status = l2_transport_tx->send(msg, seq) ;
     }
 
-    int recv(int &seq, long &tstmp){
+    int recv(int &seq, U64 &tstmp){
         int MAXSIZE = 2048;
         int status;
         U8 buffer[MAXSIZE];
