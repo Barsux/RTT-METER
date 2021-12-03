@@ -2,7 +2,7 @@
 
 class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
-  int seq;
+  int seq, stuck;
   struct pckt packet;
   struct measurement msmt[60000];
   bool can_send, have_settings;
@@ -19,7 +19,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup),can_send(false), have_settings(false), seq(1), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+    , setup(setup),can_send(false), have_settings(false), seq(1), stuck(0), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
     module_debug = "CORE";
     flags |= evaluate_every_cycle;
@@ -109,7 +109,6 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                         if(r > 0){
                             char t[128]; utc2str(t, sizeof(t), ts);
                             seq = sequence;
-                            print("");
                             printf("RECV L2 PACKET OF SEQUENCE = %d AT %s\n",sequence, t);
                             packetizer_tx->send(sequence);
                         }
@@ -125,15 +124,27 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                     if(queue == packetizer_rx){
                         int sequence; U64 ts;
                         int r = packetizer_rx->recv(sequence, ts);
-                        if(r > 0 && msmt[sequence].incoming_message == 0) msmt[sequence].incoming_message = ts;
+                        if(r > 0 && msmt[sequence].incoming_message == 0) {
+                            msmt[sequence].incoming_message = ts;
+                            stuck--;
+                        }
                     }
                     else if(queue == &timer && can_send){
                         timer.clear();
-                        if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
+                        if(seq % packet.pckt_per_s == 0) {
+                            if(stuck > packet.pckt_per_s / 2) {
+                                print("Cannot reach host!");
+                                exit(EXIT_FAILURE);
+                            }
+                            else {
+                                print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
+                            }
+                        }
                         int status  = packetizer_tx->send(seq); if(status < 0);
                         seq++;
                     }
                     else if(queue == packetizer_sent){
+                        stuck++;
                         U64 ts; int sq;
                         ts = packetizer_sent->utc_sent;
                         sq = packetizer_sent->sequence;

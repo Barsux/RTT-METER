@@ -8,6 +8,7 @@
 class Mgmt{public:
     virtual ~Mgmt() {}
     class Setup {public:
+        STR iface;
         int argc;
         char * argv[8];
     };

@@ -35,16 +35,21 @@ public:
 
     } psent;
 
-    UC checksum(unsigned short* buff, int _16bitword)
-    {
-        unsigned long sum;
-        for(sum=0;_16bitword>0;_16bitword--)
-            sum+=htons(*(buff)++);
-        sum = ((sum >> 16) + (sum & 0xFFFF));
-        sum += (sum>>16);
-        return (unsigned short)(~sum);
+    U2 compute_checksum(U2 *addr, U4 count) {
+        register U32 sum = 0;
+        while (count > 1) {
+            sum += * addr++;
+            count -= 2;
+        }
+        if(count > 0) {
+            sum += ((*addr)&htons(0xFF00));
+        }
+        while (sum>>16) {
+            sum = (sum & 0xffff) + (sum >> 16);
+        }
+        sum = ~sum;
+        return ((U2)sum);
     }
-
     void attach_l2_transport(L2Transport::Queue_rx* rx, L2Transport::Queue_tx* tx, L2Transport::Queue_sent* sent) {
         disable_wait(l2_transport_rx); disable_wait(l2_transport_tx); disable_wait(l2_transport_sent);
         l2_transport_rx = rx; l2_transport_tx = tx; l2_transport_sent = sent;
@@ -70,18 +75,15 @@ public:
         enable_wait(rx);
         flags |= evaluate_every_cycle;
     }
-
-    int recv(){
-
-    }
     int send(int seq){
         int total_len = 0;
         U8 buffer[packet.size];
         bzero(buffer, packet.size);
-
         struct ethheader *eth = (struct ethheader *)(buffer);
-        memcpy(eth->h_source, packet.srcMAC, 6);
-        memcpy(eth->h_dest, packet.dstMAC, 6);
+        for(int i = 0; i < ETH_ALEN; i++){
+            eth->h_source[i] = packet.srcMAC[i];
+            eth->h_dest[i] = packet.dstMAC[i];
+        }
         eth->h_proto = htons(0x0800);
         total_len += sizeof(struct ethheader);
 
@@ -112,10 +114,10 @@ public:
         for (int i = total_len + 1; i < packet.size; i++){
             buffer[i] = i % 10 + 48;
         }
+        iphdr->check = compute_checksum((U2 *)iphdr, iphdr->ihl<<2);
 
         iovec iovec; iovec.iov_base = buffer; iovec.iov_len = packet.size;
         msghdr msg = {}; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
-
         short status = l2_transport_tx->send(msg, seq) ;
     }
 
@@ -150,7 +152,6 @@ public:
                         packet.srcIP = ip->daddr;
                         packet.dstIP = ip->saddr;
                     }
-                    //print("\nSource MAC  - %s\nDest MAC    - %s\nSource IP   - %s\nDest IP     - %s\nSource Port - %d\nDest Port   - %d\nSequence    - %d\n", srcMAC, dstMAC, srcIP, dstIP, srcPORT, dstPORT, seq);
                     return 1;
                 }
             }

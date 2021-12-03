@@ -5,8 +5,8 @@
 
 #pragma pack(push, 1)
 struct ethheader{
-    UC h_source[6];
     UC h_dest[6];
+    UC h_source[6];
     __be16 h_proto;
 };
 

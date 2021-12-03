@@ -54,13 +54,36 @@ int str2ip4 (const char * dst, IP4 ip)
 }
 
 int mac2str(char* dst, MAC mac) {
-  return snprintf(dst, 17, "%02x:%02x:%02x:%02x:%02x:%02x"
+  return snprintf(dst, 19, "%02x:%02x:%02x:%02x:%02x:%02x"
     , (U32)mac[0], (U32)mac[1], (U32)mac[2], (U32)mac[3], (U32)mac[4], (U32)mac[5]
   );
 }
 
 int str2int(int &dst, char * src){
     return sscanf(src, "%i", &dst);
+}
+
+void getmac(MAC &mac, STR iface)
+{
+    struct ifreq s;
+    int fd = socket(PF_INET, SOCK_DGRAM, IPPROTO_IP);
+    strcpy(s.ifr_name, iface);
+    if (ioctl(fd, SIOCGIFHWADDR, &s) == 0) {
+        for (int i = 0; i < 6; i++)
+            mac[i] = s.ifr_addr.sa_data[i];
+    }
+}
+void getip4(char ip[15], STR iface)
+{
+    int fd;
+    struct ifreq ifr;
+    fd = socket(AF_INET, SOCK_DGRAM, 0);
+    ifr.ifr_addr.sa_family = AF_INET;
+    memcpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
+    ioctl(fd, SIOCGIFADDR, &ifr);
+    close(fd);
+    strcpy(ip, inet_ntoa(((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr));
+
 }
 
 int ip42str(char * dst, IP4 ip){

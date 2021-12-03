@@ -8,11 +8,13 @@
 #pragma argsused
 int main(int argc, char **argv)
 {
+  STR iface = "enp4s0";
   WaitSystem* waitSystem = new_WaitSystem();
 
   Core::Setup coreSetup;
   Core* core = new_Core(waitSystem, coreSetup);
   Mgmt::Setup mgmtSetup;
+  mgmtSetup.iface = iface;
   if(argc == 8){
       for(int i = 1; i < 8; i++){
           mgmtSetup.argv[i] = argv[i];
@@ -22,7 +24,7 @@ int main(int argc, char **argv)
   Mgmt* mgmt = new_Mgmt(waitSystem, mgmtSetup);
 
   L2Transport::Setup l2Transport_setup;
-  l2Transport_setup.physicalId = "enp4s0";
+  l2Transport_setup.physicalId = iface;
   L2Transport* l2Transport = new_L2Transport(waitSystem, l2Transport_setup);
 
   Global_setup* global_setup = new_Global_setup(waitSystem);

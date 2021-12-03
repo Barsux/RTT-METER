@@ -44,14 +44,17 @@ public:
     struct pckt convert(int argc, char **argv){
         struct pckt data;
         print("Converted!");
-        if(argc == 8){
-            str2mac(data.srcMAC, argv[1]);
-            str2mac(data.dstMAC, argv[2]);
-            data.srcIP = inet_addr(argv[3]);
-            data.dstIP = inet_addr(argv[4]);
-            str2int(data.size, argv[5]);
-            str2int(data.pckt_per_s, argv[6]);
-            str2int(data.duration, argv[7]);
+        if(argc == 640){
+            char srcIP[15];
+            bzero(srcIP, 15);
+            getmac(data.srcMAC, setup.iface);
+            getip4(srcIP, setup.iface);
+            str2mac(data.dstMAC, argv[1]);
+            data.srcIP = inet_addr(srcIP);
+            data.dstIP = inet_addr(argv[2]);
+            str2int(data.size, argv[3]);
+            str2int(data.pckt_per_s, argv[4]);
+            str2int(data.duration, argv[5]);
             data.amount = data.duration * data.pckt_per_s;
         }
         else{
