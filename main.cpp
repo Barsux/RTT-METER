@@ -15,8 +15,8 @@ int main(int argc, char **argv)
   Core* core = new_Core(waitSystem, coreSetup);
   Mgmt::Setup mgmtSetup;
   mgmtSetup.iface = iface;
-  if(argc == 8){
-      for(int i = 1; i < 8; i++){
+  if(argc == 6){
+      for(int i = 1; i < 6; i++){
           mgmtSetup.argv[i] = argv[i];
       }
       mgmtSetup.argc = argc;

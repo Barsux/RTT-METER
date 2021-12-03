@@ -64,8 +64,8 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 I4 packet_loss = 0;
                 I64 rtt_avg = 0, rtt_max = 0;
                 for(int i = 0; i < packet.amount; i++){
-                    I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
-                    if(delay > 0){
+                    if(msmt[i].incoming_message > 0 && msmt[i].upcoming_message > 0 && msmt[i].incoming_message > msmt[i].upcoming_message){
+                        I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
                         rtt_avg += delay;
                         if(delay > rtt_max) rtt_max = delay;
                     }
@@ -109,14 +109,12 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                         if(r > 0){
                             char t[128]; utc2str(t, sizeof(t), ts);
                             seq = sequence;
-                            printf("RECV L2 PACKET OF SEQUENCE = %d AT %s\n",sequence, t);
                             packetizer_tx->send(sequence);
                         }
                     }
                     else if(queue == packetizer_sent){
                         char t[128];
                         utc2str(t, sizeof(t), packetizer_sent->utc_sent);
-                        printf("\nSENT L2 PACKET OF SEQUENCE = %d AT %s", packetizer_sent->sequence, t);
                         packetizer_sent->clear();
                     }
                 }

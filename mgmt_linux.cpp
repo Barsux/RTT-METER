@@ -44,7 +44,7 @@ public:
     struct pckt convert(int argc, char **argv){
         struct pckt data;
         print("Converted!");
-        if(argc == 640){
+        if(argc == 6){
             char srcIP[15];
             bzero(srcIP, 15);
             getmac(data.srcMAC, setup.iface);
