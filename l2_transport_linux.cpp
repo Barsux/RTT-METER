@@ -63,8 +63,6 @@ public:
 
     i = 1; r = setsockopt(fd, SOL_SOCKET, SO_TIMESTAMPNS, (const char*)&i, sizeof(i));
     if (r<0) {print("set SO_TIMESTAMPNS errno=%i", errno); close(fd); fd = 0; return;}
-
-    print("READY!");
   }
 
   int recv(void * dst, U64 &utc_rx , int maxsize) {

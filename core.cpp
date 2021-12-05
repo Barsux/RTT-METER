@@ -62,29 +62,37 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 have_settings = false;
                 work.clear();
                 I4 packet_loss = 0;
-                I64 rtt_avg = 0, rtt_max = 0;
+                I64 rtt_avg = 0, rtt_max = 0, rtt_min = 10000000;
                 for(int i = 0; i < packet.amount; i++){
                     if(msmt[i].incoming_message > 0 && msmt[i].upcoming_message > 0 && msmt[i].incoming_message > msmt[i].upcoming_message){
                         I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
                         rtt_avg += delay;
                         if(delay > rtt_max) rtt_max = delay;
+                        if(delay < rtt_min) rtt_min = delay;
                     }
                     else{
                         packet_loss++;
                     }
                 }
+                float percent = (float)packet_loss * 100 / packet.amount;
                 char output[344];
-                snprintf(output, 344, "      _______________________________________________________________________________\n"
-                                                    "      Average RTT   Maximum RTT        Total loss packets     Percent of loss packets\n"
-                                                           "%12.4fmS%12.4fmS%12d               %12.3f%%\n"
-                                                    "      _______________________________________________________________________________\n",
-                                                    (double)(rtt_avg / packet.amount) / 1000000, (double) rtt_max / 1000000, packet_loss, packet_loss/ packet.amount * 100);
+                snprintf(output, 344, "\n\n/====================================\n"
+                                                    "|Average RTT             : %0.4fms\n"
+                                                    "|Minimum RTT             : %0.4fms\n"
+                                                    "|Maximum RTT             : %0.4fms\n"
+                                                    "|Total loss packets      : %d\n"
+                                                    "|Percent of loss packets : %0.4f%%\n"
+                                                    "\\====================================\n",
+                                                    (double)(rtt_avg / packet.amount) / 1000000 / 2,
+                                                    (double) rtt_min / 1000000 / 2,
+                                                    (double) rtt_max / 1000000 / 2,
+                                                    packet_loss,
+                                                    percent);
                 print("End measurement!");
                 mgmt_report->report(output);
             }
             if(!have_settings){
                 if (queue==mgmt_job) {
-
                     packetizer_rx->packet = mgmt_job->packet;
                     packet = mgmt_job->packet;
                     mgmt_job->clear();
@@ -92,9 +100,14 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                     enable_wait(packetizer_rx); enable_wait(packetizer_sent); enable_wait(packetizer_tx);
                     have_settings = true;
                     bzero(msmt, packet.amount);
-                    if(!packet.is_server) begin_work();
-                    print("READY!");
-                    print("Begin measurement!");
+                    if(!packet.is_server) {
+                        begin_work();
+                        print("Begin measurement!");
+                    }
+                    else{
+                        print("Awaiting for client!");
+                    }
+
                 }
             }
             else{

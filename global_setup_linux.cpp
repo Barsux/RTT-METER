@@ -36,7 +36,6 @@ public:
 
     void evaluate(){
         if(!setted){
-            print("READY!");
             setted = true;
         }
         while (WaitSystem::Queue* queue = enum_ready_queues()){

@@ -4,6 +4,7 @@
 class PacketizerObject: public WaitSystem::Module, public Packetizer {
     Packetizer::Setup &setup;
 public:
+    int total = sizeof(struct ethheader) + sizeof(struct ipheader) + sizeof(struct udpheader);
     bool setted;
     struct pckt packet;
     bool is_server;
@@ -35,21 +36,26 @@ public:
 
     } psent;
 
-    U2 compute_checksum(U2 *addr, U4 count) {
+    U2 IPCHECK(U2 *addr, U4 count) {
         register U32 sum = 0;
         while (count > 1) {
             sum += * addr++;
             count -= 2;
         }
-        if(count > 0) {
-            sum += ((*addr)&htons(0xFF00));
-        }
-        while (sum>>16) {
-            sum = (sum & 0xffff) + (sum >> 16);
-        }
+        if(count > 0) sum += ((*addr)&htons(0xFF00));
+        while (sum>>16) sum = (sum & 0xffff) + (sum >> 16);
         sum = ~sum;
         return ((U2)sum);
     }
+
+    U2 CRC8(U8 *pcBlock, U2 len)
+    {
+        U2 crc = 0xFF;
+        while (len--)
+            crc = CRC8TABLE[crc ^ *pcBlock++];
+        return crc;
+    }
+
     void attach_l2_transport(L2Transport::Queue_rx* rx, L2Transport::Queue_tx* tx, L2Transport::Queue_sent* sent) {
         disable_wait(l2_transport_rx); disable_wait(l2_transport_tx); disable_wait(l2_transport_sent);
         l2_transport_rx = rx; l2_transport_tx = tx; l2_transport_sent = sent;
@@ -75,6 +81,9 @@ public:
         enable_wait(rx);
         flags |= evaluate_every_cycle;
     }
+
+
+
     int send(int seq){
         int total_len = 0;
         U8 buffer[packet.size];
@@ -106,7 +115,8 @@ public:
         total_len += sizeof(struct udpheader);
 
         struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
-        rtt->rttproto = 5850;
+        rtt->size = packet.size;
+        rtt->CRC = 0;
         rtt->sequence = seq;
         total_len += sizeof(struct rttheader);
         udp->len = htons((packet.size- sizeof(struct ipheader) - sizeof(struct ethheader)));
@@ -114,8 +124,8 @@ public:
         for (int i = total_len + 1; i < packet.size; i++){
             buffer[i] = i % 10 + 48;
         }
-        iphdr->check = compute_checksum((U2 *)iphdr, iphdr->ihl<<2);
-
+        rtt->CRC = CRC8(buffer + total, packet.size - total);
+        iphdr->check = IPCHECK((U2 *)iphdr, iphdr->ihl<<2);
         iovec iovec; iovec.iov_base = buffer; iovec.iov_len = packet.size;
         msghdr msg = {}; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
         short status = l2_transport_tx->send(msg, seq) ;
@@ -143,20 +153,24 @@ public:
                 srcPORT = ntohs(uh->source);
                 dstPORT = ntohs(uh->dest);
                 if(srcPORT == 5850 && dstPORT == 5850){
-                    valid_buffer = true;
                     struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(ethheader) + sizeof(ipheader) + sizeof(udpheader));
                     seq = rtt->sequence;
+                    U2 inCRC = rtt->CRC;
+                    rtt->CRC = 0;
+                    U2 upCRC = CRC8(buffer + total, packet.size - total);
                     if(!have_values && packet.is_server){
+                        packet.size = rtt->size;
                         memcpy(packet.srcMAC, eth->h_dest, ETH_ALEN);
                         memcpy(packet.dstMAC, eth->h_source, ETH_ALEN);
                         packet.srcIP = ip->daddr;
                         packet.dstIP = ip->saddr;
                     }
-                    return 1;
+                    if(inCRC == upCRC) return 1;
+
+                    }
                 }
             }
-        }
-        if(!valid_buffer) return -1;
+        return -1;
     }
 
 
@@ -170,11 +184,8 @@ public:
             }
             else if(queue == rx && !setted){
                 packet = rx->packet;
-                if(packet.is_server) print("I am server!");
-                else print("I am client");
                 rx->clear();
                 setted = true;
-                print("READY!");
             }
             else if(queue == tx){
                 enable_wait(l2_transport_tx);

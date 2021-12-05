@@ -36,7 +36,6 @@
 
 #define BUNG return 1
 
-
 typedef uint64_t U64;
 typedef uint32_t U32;
 typedef uint16_t U16;
