@@ -142,15 +142,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                     }
                     else if(queue == &timer && can_send){
                         timer.clear();
-                        if(seq % packet.pckt_per_s == 0) {
-                            if(stuck > packet.pckt_per_s / 2) {
-                                print("Cannot reach host!");
-                                exit(EXIT_FAILURE);
-                            }
-                            else {
-                                print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
-                            }
-                        }
+                        if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
                         int status  = packetizer_tx->send(seq); if(status < 0);
                         seq++;
                     }

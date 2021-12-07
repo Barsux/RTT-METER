@@ -13,7 +13,7 @@ class L2Transport {public:
     virtual int recv(void * dst, U64 &utc_rx, int maxsize) = 0;
   }* rx;
   class Queue_tx: public WaitSystem::Queue {public:
-    virtual int send(struct msghdr msg, int seq) = 0;
+    virtual int send(U8 * buffer, int seq, int size) = 0;
   }* tx;
   class Queue_sent: public WaitSystem::Queue {public:
     U64 utc_sent;

@@ -126,9 +126,9 @@ public:
         }
         rtt->CRC = CRC8(buffer + total, packet.size - total);
         iphdr->check = IPCHECK((U2 *)iphdr, iphdr->ihl<<2);
-        iovec iovec; iovec.iov_base = buffer; iovec.iov_len = packet.size;
-        msghdr msg = {}; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
-        short status = l2_transport_tx->send(msg, seq) ;
+
+        short status = l2_transport_tx->send(buffer, seq, packet.size) ;
+        return status>=0? status: -1;
     }
 
     int recv(int &seq, U64 &tstmp){

@@ -43,7 +43,6 @@ public:
     }
     struct pckt convert(int argc, char **argv){
         struct pckt data;
-        print("Converted!");
         if(argc == 6){
             char srcIP[15];
             bzero(srcIP, 15);
@@ -58,7 +57,6 @@ public:
             data.amount = data.duration * data.pckt_per_s;
         }
         else{
-            print("I am server!");
             data.is_server = true;
         }
         return data;
