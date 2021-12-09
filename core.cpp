@@ -6,7 +6,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   struct pckt packet;
   struct measurement msmt[60000];
   bool can_send, have_settings;
-  //Очереди mgmt
+
   Mgmt::Queue_job*                  mgmt_job;
   Mgmt::Queue_report*            mgmt_report;
 
