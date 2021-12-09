@@ -139,20 +139,11 @@ public:
         status = l2_transport_rx->recv(buffer, tstmp, MAXSIZE); if(status < 0) return -1;
         __be16 ip_proto = htons(0x0800);
         struct ethheader *eth = (struct ethheader *)(buffer);
-        char srcMAC[17], dstMAC[17];
-        char srcIP[15], dstIP[15];
-        mac2str(srcMAC, eth->h_source);
-        mac2str(dstMAC, eth->h_dest);
         if(eth->h_proto == ip_proto) {
             struct ipheader *ip = (struct ipheader *) (buffer + sizeof(struct ethheader));
-            ip42str(srcIP, ip->saddr);
-            ip42str(dstIP, ip->daddr);
             if(ip->protocol == IPPROTO_UDP){
                 struct udpheader *uh = (struct udpheader *)(buffer +sizeof(ethheader) + sizeof(ipheader));
-                short srcPORT, dstPORT;
-                srcPORT = ntohs(uh->source);
-                dstPORT = ntohs(uh->dest);
-                if(srcPORT == 5850 && dstPORT == 5850){
+                if(ntohs(uh->source) == 5850 && ntohs(uh->dest) == 5850){
                     struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(ethheader) + sizeof(ipheader) + sizeof(udpheader));
                     seq = rtt->sequence;
                     U2 inCRC = rtt->CRC;
@@ -166,7 +157,6 @@ public:
                         packet.dstIP = ip->saddr;
                     }
                     if(inCRC == upCRC) return 1;
-
                     }
                 }
             }

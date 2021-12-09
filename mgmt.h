@@ -16,7 +16,7 @@ class Mgmt{public:
         struct pckt packet;
     }* job;
     class Queue_report: public WaitSystem::Queue {public:
-        virtual void report(char * report) = 0;
+        virtual void report(double avg_out, double min_out, double max_out, float percent, int packet_loss) = 0;
     }* report;
     virtual void attach_Global_setup(
             Global_setup::Queue_toSave* setup_save,

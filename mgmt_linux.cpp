@@ -19,8 +19,8 @@ public:
     class Report: public Queue_report {public:
         MgmtObject &base;
         Report(MgmtObject &base): base(base){}
-        void report(char * report){
-            return base.report_void(report);
+        void report(double avg_out, double min_out, double max_out, float percent, int packet_loss){
+            return base.report_void(avg_out, min_out, max_out, percent, packet_loss);
         }
     } mgmt_report;
     MgmtObject(WaitSystem* waitSystem, Mgmt::Setup &setup): WaitSystem::Module(waitSystem)
@@ -37,8 +37,19 @@ public:
         enable_wait(setup_set);
     }
 
-    void report_void(char * report){
-        printf("%s", report);
+    void report_void(double avg_out, double min_out, double max_out, float percent, int packet_loss){
+        printf( "\n\n/====================================\n"
+               "|Average RTT             : %0.4fms\n"
+               "|Minimum RTT             : %0.4fms\n"
+               "|Maximum RTT             : %0.4fms\n"
+               "|Total loss packets      : %d\n"
+               "|Percent of loss packets : %0.4f%%\n"
+               "\\====================================\n",
+               avg_out,
+               min_out,
+               max_out,
+               packet_loss,
+               percent);
         exit(EXIT_SUCCESS);
     }
     struct pckt convert(int argc, char **argv){
@@ -56,7 +67,8 @@ public:
             str2int(data.duration, argv[5]);
             data.amount = data.duration * data.pckt_per_s;
         }
-        else{
+        else if(argc == 2){
+            str2int(data.duration, argv[1]);
             data.is_server = true;
         }
         return data;

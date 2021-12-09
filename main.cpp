@@ -21,6 +21,10 @@ int main(int argc, char **argv)
       }
       mgmtSetup.argc = argc;
   }
+  else if(argc == 2){
+      mgmtSetup.argv[1] = argv[1];
+      mgmtSetup.argc = argc;
+  }
   Mgmt* mgmt = new_Mgmt(waitSystem, mgmtSetup);
 
   L2Transport::Setup l2Transport_setup;

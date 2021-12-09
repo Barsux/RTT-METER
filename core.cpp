@@ -2,7 +2,7 @@
 
 class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
-  int seq, stuck;
+  int seq, cant_send, buffer[50];
   struct pckt packet;
   struct measurement msmt[60000];
   bool can_send, have_settings;
@@ -19,8 +19,9 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
   CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup),can_send(false), have_settings(false), seq(1), stuck(0), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+    , setup(setup),can_send(false), have_settings(false), seq(1), cant_send(0), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
   {
+    bzero(buffer, 50);
     module_debug = "CORE";
     flags |= evaluate_every_cycle;
   }
@@ -47,113 +48,128 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     enable_wait(mgmt_job);
   }
 
-  void begin_work(){
+  int find_empty(){
+      for(int i = 0; i < 50; i++){
+          if(buffer[i] == 0) return i;
+      }
+  }
+
+  void init(){
+      packetizer_rx->packet = mgmt_job->packet;
+      packet = mgmt_job->packet;
+      mgmt_job->clear();
+      packetizer_rx->setReady();
+      enable_wait(packetizer_rx); enable_wait(packetizer_tx);
+      have_settings = true;
+      bzero(msmt, packet.amount);
+      if(packet.is_server)init_server();
+      else init_client();
+  }
+
+  void init_server(){
+      U64 work_duration = packet.duration * 1000000000ULL;
+      waitSystem->start_timer(&work, work_duration);
+      waitSystem->enable_wait(this, &work);
+      print("I am server, awaiting for client for %i seconds", packet.duration);
+  }
+
+  void init_client(){
+      enable_wait(packetizer_sent);
       U64 work_duration = packet.duration * 1000000000ULL;
       U64 packet_duration = 1000000000ULL / packet.pckt_per_s;
       waitSystem->enable_wait(this, &timer);
       waitSystem->enable_wait(this, &work);
       waitSystem->start_timer(&timer, packet_duration);
       waitSystem->start_timer(&work, work_duration);
+      print("I am client, working for %i seconds", packet.duration);
+  }
+
+  void report(){
+      have_settings = false;
+      work.clear();
+      I4 packet_loss = 0;
+      I64 rtt_avg = 0, rtt_max = 0, rtt_min = 10000000;
+      for(int i = 0; i < packet.amount; i++){
+          if(msmt[i].incoming_message > 0 && msmt[i].upcoming_message > 0 && msmt[i].incoming_message > msmt[i].upcoming_message){
+              I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
+              rtt_avg += delay;
+              if(delay > rtt_max) rtt_max = delay;
+              if(delay < rtt_min) rtt_min = delay;
+          }
+          else{
+              packet_loss++;
+          }
+      }
+      double avg_out = (double)(rtt_avg / packet.amount) / 1000000 / 2;
+      double min_out = (double) rtt_min / 1000000 / 2;
+      double max_out = (double) rtt_max / 1000000 / 2;
+      float percent = (float)packet_loss * 100 / packet.amount;
+      print("End measurement!");
+      mgmt_report->report(avg_out, min_out, max_out, percent, packet_loss);
   }
 
   void evaluate() {
       while (WaitSystem::Queue* queue = enum_ready_queues()){
-            if(queue == &work) {
-                have_settings = false;
-                work.clear();
-                I4 packet_loss = 0;
-                I64 rtt_avg = 0, rtt_max = 0, rtt_min = 10000000;
-                for(int i = 0; i < packet.amount; i++){
-                    if(msmt[i].incoming_message > 0 && msmt[i].upcoming_message > 0 && msmt[i].incoming_message > msmt[i].upcoming_message){
-                        I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
-                        rtt_avg += delay;
-                        if(delay > rtt_max) rtt_max = delay;
-                        if(delay < rtt_min) rtt_min = delay;
-                    }
-                    else{
-                        packet_loss++;
+            if(!have_settings && queue==mgmt_job) init();
+            if(queue == packetizer_tx) {
+                can_send = true;
+                packetizer_tx->clear();
+            }
+            if(packet.is_server){
+                if(queue == &work) {
+                    print("Server stopped!");
+                    exit(EXIT_SUCCESS);
+                }
+                //СЕРВЕР
+                if(can_send && cant_send != 0){
+                    for(int i = 0; i < 50; i++){
+                        if(buffer[i] != 0) {
+                            int r = packetizer_tx->send(buffer[i]);
+                            if(r > 0) buffer[i] = 0;
+                        }
                     }
                 }
-                float percent = (float)packet_loss * 100 / packet.amount;
-                char output[344];
-                snprintf(output, 344, "\n\n/====================================\n"
-                                                    "|Average RTT             : %0.4fms\n"
-                                                    "|Minimum RTT             : %0.4fms\n"
-                                                    "|Maximum RTT             : %0.4fms\n"
-                                                    "|Total loss packets      : %d\n"
-                                                    "|Percent of loss packets : %0.4f%%\n"
-                                                    "\\====================================\n",
-                                                    (double)(rtt_avg / packet.amount) / 1000000 / 2,
-                                                    (double) rtt_min / 1000000 / 2,
-                                                    (double) rtt_max / 1000000 / 2,
-                                                    packet_loss,
-                                                    percent);
-                print("End measurement!");
-                mgmt_report->report(output);
-            }
-            if(!have_settings){
-                if (queue==mgmt_job) {
-                    packetizer_rx->packet = mgmt_job->packet;
-                    packet = mgmt_job->packet;
-                    mgmt_job->clear();
-                    packetizer_rx->setReady();
-                    enable_wait(packetizer_rx); enable_wait(packetizer_sent); enable_wait(packetizer_tx);
-                    have_settings = true;
-                    bzero(msmt, packet.amount);
-                    if(!packet.is_server) {
-                        begin_work();
-                        print("Begin measurement!");
+                if(queue == packetizer_rx){
+                    //СЕРВЕР ПРИНИМАЕТ
+                    int sequence; U64 ts;
+                    int r = packetizer_rx->recv(sequence, ts);
+                    if(r > 0){
+                        seq = sequence;
+                        if(can_send){
+                            //СЕРВЕР ОТПРАВЛЯЕТ
+                            packetizer_tx->send(sequence);
+                        }
+                        else{
+                            //СЕРВЕР НЕ МОЖЕТ ОТПРАВИТЬ И ЗАПОМИНАЕТ
+                            buffer[find_empty()] = sequence;
+                            cant_send++;
+                        }
                     }
-                    else{
-                        print("Awaiting for client!");
-                    }
-
                 }
             }
             else{
-                if(queue == packetizer_tx) {
-                    can_send = true;
-                    packetizer_tx->clear();
+                if(queue == &work) report();
+                //КЛИЕНТ
+                if(queue == packetizer_rx){
+                    //КЛИЕНТ ПРИНИМАЕТ
+                    int sequence; U64 ts;
+                    int r = packetizer_rx->recv(sequence, ts);
+                    if(r > 0 && msmt[sequence].incoming_message == 0) msmt[sequence].incoming_message = ts;
                 }
-                if(packet.is_server){
-                    if(queue == packetizer_rx){
-                        int sequence; U64 ts;
-                        int r = packetizer_rx->recv(sequence, ts);
-                        if(r > 0){
-                            char t[128]; utc2str(t, sizeof(t), ts);
-                            seq = sequence;
-                            packetizer_tx->send(sequence);
-                        }
-                    }
-                    else if(queue == packetizer_sent){
-                        char t[128];
-                        utc2str(t, sizeof(t), packetizer_sent->utc_sent);
-                        packetizer_sent->clear();
-                    }
+                else if(queue == &timer && can_send){
+                    //КЛИЕНТ ОТПРАВЛЯЕТ
+                    timer.clear();
+                    if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
+                    int status  = packetizer_tx->send(seq); if(status < 0);
+                    seq++;
                 }
-                else{
-                    if(queue == packetizer_rx){
-                        int sequence; U64 ts;
-                        int r = packetizer_rx->recv(sequence, ts);
-                        if(r > 0 && msmt[sequence].incoming_message == 0) {
-                            msmt[sequence].incoming_message = ts;
-                            stuck--;
-                        }
-                    }
-                    else if(queue == &timer && can_send){
-                        timer.clear();
-                        if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
-                        int status  = packetizer_tx->send(seq); if(status < 0);
-                        seq++;
-                    }
-                    else if(queue == packetizer_sent){
-                        stuck++;
-                        U64 ts; int sq;
-                        ts = packetizer_sent->utc_sent;
-                        sq = packetizer_sent->sequence;
-                        if(msmt[sq].upcoming_message == 0) msmt[sq].upcoming_message = ts;
-                        packetizer_sent->clear();
-                    }
+                else if(queue == packetizer_sent){
+                    //КЛИЕНТ ОТПРАВИЛ
+                    U64 ts; int sq;
+                    ts = packetizer_sent->utc_sent;
+                    sq = packetizer_sent->sequence;
+                    if(msmt[sq].upcoming_message == 0) msmt[sq].upcoming_message = ts;
+                    packetizer_sent->clear();
                 }
             }
         }
