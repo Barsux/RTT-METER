@@ -25,6 +25,10 @@ int main(int argc, char **argv)
       mgmtSetup.argv[1] = argv[1];
       mgmtSetup.argc = argc;
   }
+  else{
+      print("Неправильные параметры системы или \nЗапустить сервер: <Время работы программы>\nЗапустить клиент: <MAC назначения> <IP назначения> <Размер пакета Byte> <Кол-во пакетов в сек.> <Общая длительность в сек.>");
+      exit(EXIT_FAILURE);
+  }
   Mgmt* mgmt = new_Mgmt(waitSystem, mgmtSetup);
 
   L2Transport::Setup l2Transport_setup;

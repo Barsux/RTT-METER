@@ -2,7 +2,7 @@
 
 class CoreObject: public WaitSystem::Module, public Core {public:
   Core::Setup &setup;
-  int seq, cant_send, buffer[50];
+  I2 seq, cant_send, buffer[50];
   struct pckt packet;
   struct measurement msmt[60000];
   bool can_send, have_settings;
@@ -49,7 +49,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
   }
 
   int find_empty(){
-      for(int i = 0; i < 50; i++){
+      for(I2 i = 0; i < 50; i++){
           if(buffer[i] == 0) return i;
       }
   }
@@ -89,7 +89,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
       work.clear();
       I4 packet_loss = 0;
       I64 rtt_avg = 0, rtt_max = 0, rtt_min = 10000000;
-      for(int i = 0; i < packet.amount; i++){
+      for(I2 i = 0; i < packet.amount; i++){
           if(msmt[i].incoming_message > 0 && msmt[i].upcoming_message > 0 && msmt[i].incoming_message > msmt[i].upcoming_message){
               I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
               rtt_avg += delay;
@@ -122,17 +122,17 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 }
                 //СЕРВЕР
                 if(can_send && cant_send != 0){
-                    for(int i = 0; i < 50; i++){
+                    for(I2 i = 0; i < 50; i++){
                         if(buffer[i] != 0) {
-                            int r = packetizer_tx->send(buffer[i]);
+                            I2 r = packetizer_tx->send(buffer[i]);
                             if(r > 0) buffer[i] = 0;
                         }
                     }
                 }
                 if(queue == packetizer_rx){
                     //СЕРВЕР ПРИНИМАЕТ
-                    int sequence; U64 ts;
-                    int r = packetizer_rx->recv(sequence, ts);
+                    I4 sequence; U64 ts;
+                    I2 r = packetizer_rx->recv(sequence, ts);
                     if(r > 0){
                         seq = sequence;
                         if(can_send){
@@ -152,20 +152,20 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 //КЛИЕНТ
                 if(queue == packetizer_rx){
                     //КЛИЕНТ ПРИНИМАЕТ
-                    int sequence; U64 ts;
-                    int r = packetizer_rx->recv(sequence, ts);
+                    I4 sequence; U64 ts;
+                    I2 r = packetizer_rx->recv(sequence, ts);
                     if(r > 0 && msmt[sequence].incoming_message == 0) msmt[sequence].incoming_message = ts;
                 }
                 else if(queue == &timer && can_send){
                     //КЛИЕНТ ОТПРАВЛЯЕТ
                     timer.clear();
                     if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
-                    int status  = packetizer_tx->send(seq); if(status < 0);
+                    I2 status  = packetizer_tx->send(seq); if(status < 0);
                     seq++;
                 }
                 else if(queue == packetizer_sent){
                     //КЛИЕНТ ОТПРАВИЛ
-                    U64 ts; int sq;
+                    U64 ts; I4 sq;
                     ts = packetizer_sent->utc_sent;
                     sq = packetizer_sent->sequence;
                     if(msmt[sq].upcoming_message == 0) msmt[sq].upcoming_message = ts;

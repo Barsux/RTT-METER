@@ -4,11 +4,12 @@
 class PacketizerObject: public WaitSystem::Module, public Packetizer {
     Packetizer::Setup &setup;
 public:
-    int total = sizeof(struct ethheader) + sizeof(struct ipheader) + sizeof(struct udpheader);
-    bool setted;
     struct pckt packet;
-    bool is_server;
+    U8 ready_packet[2048];
+    bool have_ready_packet;
+    bool setted;
     bool have_values;
+    I4 total;
     L2Transport::Queue_rx*     l2_transport_rx;
     L2Transport::Queue_tx*     l2_transport_tx;
     L2Transport::Queue_sent*  l2_transport_sent;
@@ -79,13 +80,11 @@ public:
         sent = &psent;
         enable_wait(tx);
         enable_wait(rx);
+        bzero(ready_packet, 2048);
+        total = sizeof(struct ethheader) + sizeof(struct ipheader) + sizeof(struct udpheader);
         flags |= evaluate_every_cycle;
     }
-
-
-
-    int send(int seq){
-        int total_len = 0;
+    void create_packet(){
         U8 buffer[packet.size];
         bzero(buffer, packet.size);
         struct ethheader *eth = (struct ethheader *)(buffer);
@@ -94,7 +93,6 @@ public:
             eth->h_dest[i] = packet.dstMAC[i];
         }
         eth->h_proto = htons(0x0800);
-        total_len += sizeof(struct ethheader);
 
         struct ipheader *iphdr = (struct ipheader*)(buffer + sizeof(struct ethheader));
         iphdr->ihl = 5;
@@ -106,28 +104,36 @@ public:
         iphdr->saddr = packet.srcIP;
         iphdr->daddr = packet.dstIP;
         iphdr->check = 0;
-        total_len += sizeof(struct ipheader);
 
         struct udpheader *udp = (struct udpheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader));
         udp->source = htons(packet.srcPORT);
         udp->dest = htons(packet.dstPORT);
         udp->check = 0;
-        total_len += sizeof(struct udpheader);
 
-        struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
-        rtt->size = packet.size;
-        rtt->CRC = 0;
-        rtt->sequence = seq;
-        total_len += sizeof(struct rttheader);
         udp->len = htons((packet.size- sizeof(struct ipheader) - sizeof(struct ethheader)));
         iphdr->tot_len = htons(packet.size - sizeof(struct ethheader));
-        for (int i = total_len + 1; i < packet.size; i++){
+        iphdr->check = IPCHECK((U2 *)iphdr, iphdr->ihl<<2);
+        int i = sizeof(ethheader) + sizeof(ipheader) + sizeof(udpheader) + sizeof(rttheader);
+        for (i; i < packet.size; i++){
             buffer[i] = i % 10 + 48;
         }
-        rtt->CRC = CRC8(buffer + total, packet.size - total);
-        iphdr->check = IPCHECK((U2 *)iphdr, iphdr->ihl<<2);
+        for(int j = 0; j < packet.size; j++){
+            ready_packet[j] = buffer[j];
+        }
+        have_ready_packet = true;
+    }
 
-        short status = l2_transport_tx->send(buffer, seq, packet.size) ;
+
+    int send(int seq){
+        if(!have_ready_packet)create_packet();
+        struct rttheader *rtt = (struct rttheader *)(ready_packet + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
+        rtt->size = packet.size;
+        rtt->sequence = seq;
+        rtt->CRC = 0;
+        rtt->CRC = CRC8(ready_packet + total, packet.size - total);
+
+
+        short status = l2_transport_tx->send(ready_packet, seq, packet.size) ;
         return status>=0? status: -1;
     }
 
@@ -157,9 +163,9 @@ public:
                         packet.dstIP = ip->saddr;
                     }
                     if(inCRC == upCRC) return 1;
-                    }
                 }
             }
+        }
         return -1;
     }
 
