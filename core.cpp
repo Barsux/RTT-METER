@@ -1,115 +1,116 @@
 #include "core.h"
 
 class CoreObject: public WaitSystem::Module, public Core {public:
-  Core::Setup &setup;
-  I2 seq, cant_send, buffer[50];
-  struct pckt packet;
-  struct measurement msmt[60000];
-  bool can_send, have_settings;
+    Core::Setup &setup;
+    I4 seq, cant_send, buffer[50];
+    struct pckt packet;
+    struct measurement msmt[120000];
+    bool can_send, have_settings;
 
-  Mgmt::Queue_job*                  mgmt_job;
-  Mgmt::Queue_report*            mgmt_report;
+    Mgmt::Queue_job*                  mgmt_job;
+    Mgmt::Queue_report*            mgmt_report;
 
-  Global_setup::Queue_toSet*       setup_set;
-  Global_setup::Queue_toSave*     setup_save;
+    Global_setup::Queue_toSet*       setup_set;
+    Global_setup::Queue_toSave*     setup_save;
 
-  Packetizer::Queue_prx*        packetizer_rx;
-  Packetizer::Queue_ptx*        packetizer_tx;
-  Packetizer::Queue_psent*    packetizer_sent;
-
-
-  CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-    , setup(setup),can_send(false), have_settings(false), seq(1), cant_send(0), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
-  {
-    bzero(buffer, 50);
-    module_debug = "CORE";
-    flags |= evaluate_every_cycle;
-  }
-  WaitSystem::Queue timer;
-  WaitSystem::Queue work;
+    Packetizer::Queue_prx*        packetizer_rx;
+    Packetizer::Queue_ptx*        packetizer_tx;
+    Packetizer::Queue_psent*    packetizer_sent;
 
 
-  void attach_Global_setup(Global_setup::Queue_toSave* save, Global_setup::Queue_toSet* set){
-    setup_set = set; setup_save = save;
-    disable_wait(setup_set); disable_wait(setup_save);
-    enable_wait(setup_set);
-  }
+    CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
+            , setup(setup),can_send(false), have_settings(false), seq(1), cant_send(0), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+    {
+        bzero(buffer, 50);
+        module_debug = "CORE";
+        flags |= evaluate_every_cycle;
+    }
+    WaitSystem::Queue timer;
+    WaitSystem::Queue work;
 
-  void attach_packetizer(Packetizer::Queue_prx* rx, Packetizer::Queue_ptx* tx, Packetizer::Queue_psent* sent){
-    disable_wait(packetizer_tx); disable_wait(packetizer_rx); disable_wait(packetizer_sent);
-    packetizer_tx = tx;
-    packetizer_rx = rx;
-    packetizer_sent = sent;
-  }
 
-  void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
-    disable_wait(mgmt_job); disable_wait(mgmt_report);
-    mgmt_job = job; mgmt_report = report;
-    enable_wait(mgmt_job);
-  }
+    void attach_Global_setup(Global_setup::Queue_toSave* save, Global_setup::Queue_toSet* set){
+        setup_set = set; setup_save = save;
+        disable_wait(setup_set); disable_wait(setup_save);
+        enable_wait(setup_set);
+    }
 
-  int find_empty(){
-      for(I2 i = 0; i < 50; i++){
-          if(buffer[i] == 0) return i;
-      }
-  }
+    void attach_packetizer(Packetizer::Queue_prx* rx, Packetizer::Queue_ptx* tx, Packetizer::Queue_psent* sent){
+        disable_wait(packetizer_tx); disable_wait(packetizer_rx); disable_wait(packetizer_sent);
+        packetizer_tx = tx;
+        packetizer_rx = rx;
+        packetizer_sent = sent;
+    }
 
-  void init(){
-      packetizer_rx->packet = mgmt_job->packet;
-      packet = mgmt_job->packet;
-      mgmt_job->clear();
-      packetizer_rx->setReady();
-      enable_wait(packetizer_rx); enable_wait(packetizer_tx);
-      have_settings = true;
-      bzero(msmt, packet.amount);
-      if(packet.is_server)init_server();
-      else init_client();
-  }
+    void attach_mgmt(Mgmt::Queue_job* job, Mgmt::Queue_report* report){
+        disable_wait(mgmt_job); disable_wait(mgmt_report);
+        mgmt_job = job; mgmt_report = report;
+        enable_wait(mgmt_job);
+    }
 
-  void init_server(){
-      U64 work_duration = packet.duration * 1000000000ULL;
-      waitSystem->start_timer(&work, work_duration);
-      waitSystem->enable_wait(this, &work);
-      print("I am server, awaiting for client for %i seconds", packet.duration);
-  }
+    int find_empty(){
+        for(I2 i = 0; i < 50; i++){
+            if(buffer[i] == 0) return i;
+        }
+    }
 
-  void init_client(){
-      enable_wait(packetizer_sent);
-      U64 work_duration = packet.duration * 1000000000ULL;
-      U64 packet_duration = 1000000000ULL / packet.pckt_per_s;
-      waitSystem->enable_wait(this, &timer);
-      waitSystem->enable_wait(this, &work);
-      waitSystem->start_timer(&timer, packet_duration);
-      waitSystem->start_timer(&work, work_duration);
-      print("I am client, working for %i seconds", packet.duration);
-  }
+    void init(){
+        have_settings = true;
 
-  void report(){
-      have_settings = false;
-      work.clear();
-      I4 packet_loss = 0;
-      I64 rtt_avg = 0, rtt_max = 0, rtt_min = 10000000;
-      for(I2 i = 0; i < packet.amount; i++){
-          if(msmt[i].incoming_message > 0 && msmt[i].upcoming_message > 0 && msmt[i].incoming_message > msmt[i].upcoming_message){
-              I4 delay = msmt[i].incoming_message - msmt[i].upcoming_message;
-              rtt_avg += delay;
-              if(delay > rtt_max) rtt_max = delay;
-              if(delay < rtt_min) rtt_min = delay;
-          }
-          else{
-              packet_loss++;
-          }
-      }
-      double avg_out = (double)(rtt_avg / packet.amount) / 1000000 / 2;
-      double min_out = (double) rtt_min / 1000000 / 2;
-      double max_out = (double) rtt_max / 1000000 / 2;
-      float percent = (float)packet_loss * 100 / packet.amount;
-      print("End measurement!");
-      mgmt_report->report(avg_out, min_out, max_out, percent, packet_loss);
-  }
+        packetizer_rx->packet = mgmt_job->packet;
+        packet = mgmt_job->packet;
+        mgmt_job->clear();
+        packetizer_rx->setReady();
 
-  void evaluate() {
-      while (WaitSystem::Queue* queue = enum_ready_queues()){
+        enable_wait(packetizer_rx); enable_wait(packetizer_tx);
+
+        U64 work_duration = packet.duration * 1000000000ULL;
+        waitSystem->start_timer(&work, work_duration);
+        waitSystem->enable_wait(this, &work);
+
+        if(packet.is_server)init_server();
+        else init_client();
+    }
+
+    void init_server(){
+        print("I am server, awaiting for client for %i seconds", packet.duration);
+    }
+
+    void init_client(){
+        enable_wait(packetizer_sent);
+        U64 packet_duration = 1000000000ULL / packet.pckt_per_s;
+        waitSystem->enable_wait(this, &timer);
+        waitSystem->enable_wait(this, &work);
+        waitSystem->start_timer(&timer, packet_duration);;
+        print("I am client, working for %i seconds", packet.duration);
+    }
+
+    void report(){
+        have_settings = false;
+        work.clear();
+        I4 packet_loss = 0;
+        I64 rtt_avg = 0, rtt_max = 0, rtt_min = 10000000;
+        for(I4 i = 0; i < packet.amount; i++){
+            if(msmt[i].in_ts && msmt[i].up_ts && msmt[i].in_ts > msmt[i].up_ts){
+                I4 delay = msmt[i].in_ts - msmt[i].up_ts;
+                rtt_avg += delay;
+                if(delay > rtt_max) rtt_max = delay;
+                if(delay < rtt_min) rtt_min = delay;
+            }
+            else{
+                packet_loss++;
+            }
+        }
+        double avg_out = (double)(rtt_avg / packet.amount) / 1000000 / 2;
+        double min_out = (double) rtt_min / 1000000 / 2;
+        double max_out = (double) rtt_max / 1000000 / 2;
+        float percent = (float)packet_loss * 100 / packet.amount;
+        print("End measurement!");
+        mgmt_report->report(avg_out, min_out, max_out, percent, packet_loss);
+    }
+
+    void evaluate() {
+        while (WaitSystem::Queue* queue = enum_ready_queues()){
             if(!have_settings && queue==mgmt_job) init();
             if(queue == packetizer_tx) {
                 can_send = true;
@@ -141,7 +142,8 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                         }
                         else{
                             //СЕРВЕР НЕ МОЖЕТ ОТПРАВИТЬ И ЗАПОМИНАЕТ
-                            buffer[find_empty()] = sequence;
+                            I2 empty_index = find_empty();
+                            buffer[empty_index] = sequence;
                             cant_send++;
                         }
                     }
@@ -153,22 +155,21 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                 if(queue == packetizer_rx){
                     //КЛИЕНТ ПРИНИМАЕТ
                     I4 sequence; U64 ts;
-                    I2 r = packetizer_rx->recv(sequence, ts);
-                    if(r > 0 && msmt[sequence].incoming_message == 0) msmt[sequence].incoming_message = ts;
+                    I2 status = packetizer_rx->recv(sequence, ts);
+                    if(status > 0 && !msmt[sequence].in_ts) msmt[sequence].in_ts = ts;
                 }
                 else if(queue == &timer && can_send){
                     //КЛИЕНТ ОТПРАВЛЯЕТ
                     timer.clear();
                     if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
-                    I2 status  = packetizer_tx->send(seq); if(status < 0);
-                    seq++;
+                    I2 status  = packetizer_tx->send(seq);
+                    if(status > 0) seq++;
                 }
                 else if(queue == packetizer_sent){
                     //КЛИЕНТ ОТПРАВИЛ
-                    U64 ts; I4 sq;
-                    ts = packetizer_sent->utc_sent;
-                    sq = packetizer_sent->sequence;
-                    if(msmt[sq].upcoming_message == 0) msmt[sq].upcoming_message = ts;
+                    U64 ts = packetizer_sent->utc_sent;
+                    I4 sq = packetizer_sent->sequence;
+                    if(!msmt[sq].up_ts) msmt[sq].up_ts = ts;
                     packetizer_sent->clear();
                 }
             }
@@ -178,6 +179,5 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
 Core* new_Core(WaitSystem* waitSystem, Core::Setup &setup) {
-  return new CoreObject(waitSystem, setup);
+    return new CoreObject(waitSystem, setup);
 }
-

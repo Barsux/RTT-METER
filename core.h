@@ -8,10 +8,10 @@
 #include "packetizer_linux.h"
 
 struct measurement{
-    bool filled;
-    U64 incoming_message;
-    U64 upcoming_message;
-    measurement(): filled(){}
+    I4 seq;
+    U64 in_ts;
+    U64 up_ts;
+    measurement():seq(0), in_ts(0), up_ts(0){}
 };
 
 class Core {public:
