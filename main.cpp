@@ -8,7 +8,7 @@
 #pragma argsused
 int main(int argc, char **argv)
 {
-  STR iface = "enp4s0";
+  STR iface = "enx00e04f3e0270";
   WaitSystem* waitSystem = new_WaitSystem();
 
   Core::Setup coreSetup;

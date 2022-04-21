@@ -5,7 +5,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
     I4 seq, cant_send, buffer[50];
     struct pckt packet;
     struct measurement msmt[120000];
-    bool can_send, have_settings;
+    bool can_send, have_settings, prepairing;
 
     Mgmt::Queue_job*                  mgmt_job;
     Mgmt::Queue_report*            mgmt_report;
@@ -19,7 +19,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
 
     CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-            , setup(setup),can_send(false), have_settings(false), seq(1), cant_send(0), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
+            , setup(setup),can_send(false), prepairing(false), have_settings(false), seq(0), cant_send(0), mgmt_job(), mgmt_report(), packetizer_tx(), packetizer_rx(), packetizer_sent()
     {
         bzero(buffer, 50);
         module_debug = "CORE";
@@ -64,7 +64,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 
         enable_wait(packetizer_rx); enable_wait(packetizer_tx);
 
-        U64 work_duration = packet.duration * 1000000000ULL;
+        U64 work_duration = (packet.duration + 1) * 1000000000ULL;
         waitSystem->start_timer(&work, work_duration);
         waitSystem->enable_wait(this, &work);
 
@@ -105,7 +105,6 @@ class CoreObject: public WaitSystem::Module, public Core {public:
         double min_out = (double) rtt_min / 1000000 / 2;
         double max_out = (double) rtt_max / 1000000 / 2;
         float percent = (float)packet_loss * 100 / packet.amount;
-        print("End measurement!");
         mgmt_report->report(avg_out, min_out, max_out, percent, packet_loss);
     }
 
@@ -162,8 +161,10 @@ class CoreObject: public WaitSystem::Module, public Core {public:
                     //КЛИЕНТ ОТПРАВЛЯЕТ
                     timer.clear();
                     if(seq % packet.pckt_per_s == 0) print("%d seconds left.", packet.duration - seq / packet.pckt_per_s);
-                    I2 status  = packetizer_tx->send(seq);
-                    if(status > 0) seq++;
+                    if(seq <= packet.amount) {
+                        I2 status  = packetizer_tx->send(seq);
+                        if(status > 0) seq++;
+                    }
                 }
                 else if(queue == packetizer_sent){
                     //КЛИЕНТ ОТПРАВИЛ

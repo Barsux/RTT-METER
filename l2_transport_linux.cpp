@@ -70,7 +70,10 @@ public:
       msghdr msg; msg.msg_iov = &iovec; msg.msg_iovlen = 1;
       sockaddr_ll sa_ll; msg.msg_name = &sa_ll; msg.msg_namelen = sizeof(sa_ll);
       U8 t[256]; msg.msg_control = t; msg.msg_controllen = sizeof(t); msg.msg_flags = 0;
-      int r = recvmsg(fd, &msg, 0); if (r<=0) return -1;
+      int r = recvmsg(fd, &msg, 0); if (r<=0) {
+          //perror("fuck");
+          return -1;
+      }
       cmsghdr* cmsg = CMSG_FIRSTHDR(&msg); utc_rx = 0;
       while (!utc_rx && cmsg) {
           if (cmsg->cmsg_level==SOL_SOCKET && cmsg->cmsg_type==SCM_TIMESTAMPNS) {

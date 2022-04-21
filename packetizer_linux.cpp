@@ -142,30 +142,34 @@ public:
         int status;
         U8 buffer[MAXSIZE];
         bool valid_buffer = false;
-        status = l2_transport_rx->recv(buffer, tstmp, MAXSIZE); if(status < 0) return -1;
+        status = l2_transport_rx->recv(buffer, tstmp, MAXSIZE);
+        if(status < 0)return -1;
+
         __be16 ip_proto = htons(0x0800);
         struct ethheader *eth = (struct ethheader *)(buffer);
-        if(eth->h_proto == ip_proto) {
-            struct ipheader *ip = (struct ipheader *) (buffer + sizeof(struct ethheader));
-            if(ip->protocol == IPPROTO_UDP){
-                struct udpheader *uh = (struct udpheader *)(buffer +sizeof(ethheader) + sizeof(ipheader));
-                if(ntohs(uh->source) == 5850 && ntohs(uh->dest) == 5850){
-                    struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(ethheader) + sizeof(ipheader) + sizeof(udpheader));
-                    seq = rtt->sequence;
-                    U2 inCRC = rtt->CRC;
-                    rtt->CRC = 0;
-                    U2 upCRC = CRC8(buffer + total, packet.size - total);
-                    if(!have_values && packet.is_server){
-                        packet.size = rtt->size;
-                        memcpy(packet.srcMAC, eth->h_dest, ETH_ALEN);
-                        memcpy(packet.dstMAC, eth->h_source, ETH_ALEN);
-                        packet.srcIP = ip->daddr;
-                        packet.dstIP = ip->saddr;
-                    }
-                    if(inCRC == upCRC) return 1;
-                }
-            }
+        if(eth->h_proto != ip_proto)return -1;
+
+
+        struct ipheader *ip = (struct ipheader *) (buffer + sizeof(struct ethheader));
+        if(ip->protocol != IPPROTO_UDP)return -1;
+
+	struct udpheader *uh = (struct udpheader *)(buffer +sizeof(ethheader) + sizeof(ipheader));
+        if(ntohs(uh->source) != 5850 || ntohs(uh->dest) != 5850)return -1;
+
+
+        struct rttheader *rtt = (struct rttheader *)(buffer + sizeof(ethheader) + sizeof(ipheader) + sizeof(udpheader));
+        seq = rtt->sequence;
+        U2 inCRC = rtt->CRC;
+        rtt->CRC = 0;
+        U2 upCRC = CRC8(buffer + total, packet.size - total);
+        if(!have_values && packet.is_server){
+        	packet.size = rtt->size;
+                memcpy(packet.srcMAC, eth->h_dest, ETH_ALEN);
+                memcpy(packet.dstMAC, eth->h_source, ETH_ALEN);
+                packet.srcIP = ip->daddr;
+                packet.dstIP = ip->saddr;
         }
+        if(inCRC == upCRC) return 1;
         return -1;
     }
 

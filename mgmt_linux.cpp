@@ -55,12 +55,11 @@ public:
     struct pckt convert(int argc, char **argv){
         struct pckt data;
         if(argc == 6){
-            char srcIP[15];
-            bzero(srcIP, 15);
+            getip4(data.srcIP, setup.iface);
+            char ip[15]; memset(ip, 0, 15);
+            ip42str(ip, data.srcIP); print("%s", ip);
             getmac(data.srcMAC, setup.iface);
-            getip4(srcIP, setup.iface);
             str2mac(data.dstMAC, argv[1]);
-            data.srcIP = inet_addr(srcIP);
             data.dstIP = inet_addr(argv[2]);
             str2int(data.size, argv[3]);
             str2int(data.pckt_per_s, argv[4]);

@@ -73,17 +73,21 @@ void getmac(MAC &mac, STR iface)
             mac[i] = s.ifr_addr.sa_data[i];
     }
 }
-void getip4(char ip[15], STR iface)
-{
-    int fd;
+void getip4(IP4 &ip, STR iface){
     struct ifreq ifr;
-    fd = socket(AF_INET, SOCK_DGRAM, 0);
-    ifr.ifr_addr.sa_family = AF_INET;
-    memcpy(ifr.ifr_name, iface, IFNAMSIZ - 1);
-    ioctl(fd, SIOCGIFADDR, &ifr);
+    strncpy(ifr.ifr_name , iface , IFNAMSIZ-1);
+    int fd=socket(AF_INET,SOCK_DGRAM,0);
+    if (fd==-1) {
+        return;
+    }
+    if (ioctl(fd,SIOCGIFADDR,&ifr)==-1) {
+        int temp_errno=errno;
+        close(fd);
+        return;
+    }
     close(fd);
-    strcpy(ip, inet_ntoa(((struct sockaddr_in*)&ifr.ifr_addr)->sin_addr));
-
+    struct sockaddr_in* ipaddr = (struct sockaddr_in*)&ifr.ifr_addr;
+    ip = inet_addr(inet_ntoa(ipaddr->sin_addr));
 }
 
 int ip42str(char * dst, IP4 ip){
