@@ -1,4 +1,5 @@
 #include "time.h"
+#define UNIX_CONST 951868800
 U32 global_high = 0;
 U32 cntstamp = 0;
 U16 divider = SystemCoreClock / 1000000;
@@ -25,6 +26,26 @@ void time_init(){
 	TIMER_Cmd(MDR_TIMER1, ENABLE);
 }
 
+
+
+
+const uint16_t day_offset[12] = {0, 31, 61,92, 122, 153, 184, 214, 245, 275,306, 337};
+
+uint32_t datetime2seconds(char * date, char * seconds)
+{
+        int day = 0, month = 0, year = 0;
+        sscanf(date, "%02i%02i%02i", &day, &month, &year);
+        uint8_t a = month < 3; 
+        int16_t y = year - a;  
+        uint8_t m = month + 12 * a - 3; 
+        return (day - 1 + day_offset[m] + y * 365 + y / 4 - y / 100 + y / 400) * 86400 + UNIX_CONST;
+}
+
+uint32_t get_high(){
+	return global_high;
+}
+	
+
 void check_overloading(){
 	if(MDR_TIMER1->CNT <= cntstamp){
 		global_high++;
@@ -32,12 +53,28 @@ void check_overloading(){
 	cntstamp = MDR_TIMER1->CNT;
 }
 
-
-void set_utc(U64 time){
-	time *= divider;
+void set_from_u64(U64 time){
 	global_high = (U32)(time >> 32);
 	MDR_TIMER1->CNT = (volatile uint32_t)time;
 }
+
+void set_from_utc(U64 time){
+	time *= (divider * 1000);
+	set_from_u64(time);
+}
+
+void set_from_datetime(char * date, char * seconds){
+	U32 s = datetime2seconds(date, seconds);
+	set_from_utc(s);
+}
+
+void add_time(U64 added_time){
+	uint64_t time = ((uint64_t)global_high << 32) | ((uint64_t)MDR_TIMER1->CNT);
+	time += added_time;
+	set_from_u64(time);
+}
+
+
 
 TsNs::TsNs(){
 	check_overloading();

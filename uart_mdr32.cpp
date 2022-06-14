@@ -3,18 +3,13 @@
 
 #endif
 
-bool rxready;
-bool txready;
-U8 rx_buff[256];
-U8 tx_buff[256];
-U8 rx_nbuff = 0;
-U8 tx_nbuff = 0;
-U8 tx_pointer = 0;
 
 
 class UART_MDR32: public WaitSystem::Module, public UART {
 public:
-  bool init, wait_pps, wait_uart;
+  bool init, wait_pps, wait_uart, copy;
+  char buff[256]; int buff_ptr;
+  U32 high_ts, ts;
   class Rx: public Queue_rx {public:
     UART_MDR32 &base;
     Rx(UART_MDR32 &base): base(base) { 
@@ -27,7 +22,7 @@ public:
   } queue_tx;
 	
   UART_MDR32(WaitSystem* waitSystem): WaitSystem::Module(waitSystem)
-		,init(false),queue_rx(*this), queue_tx(*this)
+		,init(false),queue_rx(*this), queue_tx(*this), high_ts(0), ts(0)
   {
     module_debug = "UART";
     rx 		= &queue_rx; 	memset(rx->rxbuf, 0, 256); 	rx->rxlen = 0;
@@ -36,10 +31,9 @@ public:
   }
 	
 	void uart_init(){
+		copy = false;
 		wait_pps = true;
 		wait_uart = false;
-		txready = false;
-		rxready = false;
 		init = true;
 		awaited = true;
 		RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTD, ENABLE);
@@ -79,14 +73,38 @@ public:
 		
 	}
 	void check(){
-		if(MDR_PORTD->RXTX & (1<<15)) {
-			PRINT("PPS");
+		//Ждём PPS
+		if(wait_pps && MDR_PORTD->RXTX & (1<<15)) {
+			//Блинк светодиодом
 			MDR_PORTD->RXTX ^= (1<<8);
+			wait_pps = false; wait_uart = true;
+			//Сохраняем штамп старшего и младшего регистра, обнуляем таймер
+			high_ts = get_high(); ts = MDR_TIMER1->CNT; MDR_TIMER1->CNT = 0;
 		}
-		//Пересылка с UART2_RX на UART1_TX
-		if(MDR_UART2->FR & UART_FLAG_RXFF && MDR_UART1->FR & UART_FLAG_TXFE){
+		//Если есть символ в буффере UART2_RX
+		if(wait_uart && MDR_UART2->FR & UART_FLAG_RXFF){
 			volatile U8 data = (U8)MDR_UART2->DR;
-			MDR_UART1->DR = data;
+			if(data == '$') {
+				copy = true;
+			}
+			else if(data == '\r'){
+				int stat = nmea_time_set(buff, buff_ptr);
+				if(stat > 0){
+					wait_uart = false; wait_pps = true;
+				}
+				memset(buff, 0, buff_ptr + 1); buff_ptr = 0;
+				copy = false;
+			}
+			if(copy){
+				buff[buff_ptr] = data;
+				buff_ptr += 1;
+			}
+		}
+		if(wait_uart && high_ts < get_high()){
+			//Если таймер переполнился и время не пришло, то всё отменяем, прибавляем к текущему времени, штамп младшего регистра
+			add_time(ts);
+			wait_uart = false; wait_pps = true;
+			memset(buff, 0, 256); buff_ptr = 0;
 		}
 	}
 	void evaluate() {

@@ -33,6 +33,6 @@ int nmea_time_set(char* src, int cbSrc) {// <= входящее от UART
       }
       if (i<9) {return -1;}
     }
-	set_utc_from_datetime(date, time);
+	set_from_datetime(date, time);
     return src-src0;
   }
