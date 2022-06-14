@@ -66,7 +66,7 @@ public:
 			if(sended){
 				sended = false;
 				sent->utc_sent = TsNs();
-				sent->setReady();
+				//sent->setReady();
 			}
 			tx->setReady();
 		}

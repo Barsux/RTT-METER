@@ -2,6 +2,7 @@
 
 class CoreObject: public WaitSystem::Module, public Core {public:
 	Core::Setup &setup;
+	OTT * measurements; int nmeasurements;
 	Packetizer::Queue_prx*		packetizer_rx;
 	Packetizer::Queue_ptx*		packetizer_tx;
 	Packetizer::Queue_psent*    packetizer_sent;
@@ -10,7 +11,7 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 	volatile I4 seq;
 	bool can_send = false;
 	CoreObject(WaitSystem* waitSystem, Core::Setup &setup): WaitSystem::Module(waitSystem)
-		,setup(setup), packetizer_tx(), packetizer_rx(), packetizer_sent()
+		,setup(setup), packetizer_tx(), packetizer_rx(), packetizer_sent(), nmeasurements(0)
 	{
 		awaited = false;
 		module_debug = "CORE";
@@ -30,15 +31,21 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 	}
 	void init(){}
 	void check(){}
+	void msmt_add_arr(OTT item) {
+		measurements = (OTT*)realloc(measurements, sizeof(OTT*)*(nmeasurements+1));
+		measurements[nmeasurements] = item; nmeasurements++;
+	}
+	void msmt_add_seq(int sequence, TsNs &recv_ts){
+		for(int i = 0; i < nmeasurements; i++){
+			if(measurements->seq == sequence){
+				measurements[i].inc_ts = recv_ts;
+			}				
+		}
+	}
 	void evaluate() {
-		/*
-		PRINT("Attempt to send an a packet with loopback");
-		if(pointer <= counter){
-			
-			packetizer_tx->send(pointer++);
-		}*/
 		while (WaitSystem::Queue* queue = enum_ready_queues()){
-			
+			//RTT
+			/*
 			if(queue == packetizer_tx) {
 				packetizer_tx->clear();
 				can_send = true;
@@ -54,6 +61,28 @@ class CoreObject: public WaitSystem::Module, public Core {public:
 					packetizer_tx->send_rtt(sequence);
 				}
 			}
+			*/
+			
+			//OTT
+			if(queue == packetizer_tx){
+				packetizer_tx->clear();
+				OTT send_msmt;
+				send_msmt.seq = pointer;
+				I2 r = packetizer_tx->send_ott(pointer, send_msmt.out_ts);
+				if(r > 0){
+					pointer++;
+					//msmt_add_arr(send_msmt);
+				}
+			}
+			else if(queue == packetizer_rx){
+				packetizer_rx->clear();
+				int seq; TsNs recv_ts;
+				I2 r = packetizer_rx->recv_ott(seq, recv_ts);
+				if(r > 0){
+					msmt_add_seq(seq, recv_ts);
+				}
+			}
+			
 		}
 	}
 };

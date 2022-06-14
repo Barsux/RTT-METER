@@ -1,9 +1,22 @@
 #include "ethernet.h"
 #define PRINT(...) sendstr(__VA_ARGS__)
 
+void Ports_Init(void)
+{
+    PORT_InitTypeDef gpio;
+    RST_CLK_PCLKcmd (RST_CLK_PCLK_PORTF, ENABLE);
+    PORT_StructInit (&gpio);
+    gpio.PORT_Pin   = PORT_Pin_13 | PORT_Pin_14;
+    gpio.PORT_OE    = PORT_OE_OUT;
+    gpio.PORT_SPEED = PORT_SPEED_SLOW;
+    gpio.PORT_MODE  = PORT_MODE_DIGITAL;
+    PORT_Init(MDR_PORTF, &gpio);
+}
+
 int eth_init(MAC &srcMAC){
 	ETH_ClockDeInit();
 	RST_CLK_PCLKcmd(RST_CLK_PCLK_DMA, ENABLE); // Dma here now, idk.
+	RST_CLK_PCLKcmd(RST_CLK_PCLK_PORTF, ENABLE);
 	
 	RST_CLK_HSE2config(RST_CLK_HSE2_ON);
 	if(RST_CLK_HSE2status() == ERROR) return -1;
@@ -36,9 +49,11 @@ int eth_init(MAC &srcMAC){
 	ETH_Init(MDR_ETHERNET1, (ETH_InitTypeDef *) &ETH_InitStruct);
 	ETH_PHYCmd(MDR_ETHERNET1, ENABLE);
 	ETH_Start(MDR_ETHERNET1);
+	Ports_Init();
 	PRINT("ETH INIT");
 	return 1;
 }
+
 
 void sendto(U32 * packet){
 	ETH_SendFrame(MDR_ETHERNET1, (U32 *) packet, *(U32*)&packet[0]);
@@ -47,10 +62,7 @@ void sendto(U32 * packet){
 U16 recvto(U32 * packet, TsNs &UTC_Recv){
 	ETH_StatusPacketReceptionTypeDef ETH_StatusPacketReceptionStruct;
 	
-	if(MDR_ETHERNET1->ETH_R_Head != MDR_ETHERNET1->ETH_R_Tail) {
-		UTC_Recv.renew();
-		ETH_StatusPacketReceptionStruct.Status = ETH_ReceivedFrame(MDR_ETHERNET1, packet);
-		return ETH_StatusPacketReceptionStruct.Fields.Length;
-	}
-	return 0; 
+	UTC_Recv.renew();
+	ETH_StatusPacketReceptionStruct.Status = ETH_ReceivedFrame(MDR_ETHERNET1, packet);
+	return ETH_StatusPacketReceptionStruct.Fields.Length;
 }

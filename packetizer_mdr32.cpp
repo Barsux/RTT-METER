@@ -9,7 +9,7 @@ public:
     bool have_ready_packet;
     bool setted;
     bool have_values;
-	bool inited;
+		bool inited;
 		
     I4 total;
     L2Transport::Queue_rx*		l2_transport_rx;
@@ -89,10 +89,9 @@ public:
 		packet.dstPORT = 5850;
 		packet.srcPORT = 5850;
 		packet.is_server = true;
-		setted = true; inited = true;
+		inited = true;
 		str2ip4(packet.srcIP, setup.ip4);
 		str2mac(packet.srcMAC, setup.srcMAC);
-		eth_init(packet.srcMAC);
 		/*
 		packet.size = 256;
 		char dstmac[] = "00:e0:4f:3e:02:27";
@@ -180,6 +179,7 @@ public:
             ready_packet[j] = buffer[j];
         }
         have_ready_packet = true;
+		PRINT("Ott created packet");
 	}
 
     int send_rtt(int seq){
@@ -194,6 +194,16 @@ public:
     }
 	
 	int send_ott(int seq, TsNs &send_ts){
+		if(!setted){
+			setted = true;
+			packet.size = 256;
+			char dstmac[] = "00:e0:4f:3e:02:27";
+			str2mac(packet.dstMAC, dstmac);
+			char dstip[] = "0.0.0.0";
+			str2ip4(packet.dstIP, dstip);
+			create_ott_packet();
+			PRINT("Setted!");
+		}
 		struct rttheader *rtt = (struct rttheader *)(ready_packet + SPACER + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader));
         rtt->size = packet.size;
         rtt->sequence = seq;
@@ -202,8 +212,8 @@ public:
 		ttt->clock = SystemCoreClock;
 		send_ts.renew();
 		ttt->timestamp = send_ts.toU64();
-		PRINT("Core clock sended: %lu", ttt->clock);
-		PRINT("Timestamp sended: %llu", ttt->timestamp);
+		//PRINT("Core clock sended: %lu", ttt->clock);
+		//PRINT("Timestamp sended: %llu", ttt->timestamp);
         rtt->CRC = CRC8(&((ready_packet + total)[SPACER]), packet.size - total);
 		*(uint32_t *)&ready_packet[0] = packet.size; 
         short status = l2_transport_tx->send((U32*)ready_packet);
@@ -277,8 +287,8 @@ public:
         U2 upCRC = CRC8(buffer + total, packet.size - total);
 		
 		struct timeheader *ttt = (struct timeheader *)(buffer + sizeof(struct ipheader) + sizeof(struct ethheader) + sizeof(struct udpheader) + sizeof(rttheader));
-		PRINT("Core clock received: %lu", ttt->clock);
-		PRINT("Timestamp received: %llu", ttt->timestamp);
+		//PRINT("Core clock received: %lu", ttt->clock);
+		//PRINT("Timestamp received: %llu", ttt->timestamp);
 
         if(!have_values && packet.is_server){
 			have_values = true;
@@ -298,6 +308,7 @@ public:
 
     void evaluate(){
 		if(!inited) init();
+		//tx->setReady();
         while (WaitSystem::Queue* queue = enum_ready_queues()){
 			//L2 TX
 			if(queue == l2_transport_tx){

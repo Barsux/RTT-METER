@@ -138,6 +138,18 @@ void stdout_write(void* src, int cbSrc) {
 void stdout_write(void * src, int cbSrc){
 	
 }
+
+void eth_update_leds(void)
+{        
+    if (MDR_ETHERNET1->PHY_Status & ETH_PHY_FLAG_LINK)
+        PORT_ResetBits(MDR_PORTF, PORT_Pin_13);
+    else
+        PORT_SetBits(MDR_PORTF, PORT_Pin_13);
+    if (MDR_ETHERNET1->PHY_Status & ETH_PHY_FLAG_CARRIER_SENSE)
+        PORT_ResetBits(MDR_PORTF, PORT_Pin_14);
+    else
+        PORT_SetBits(MDR_PORTF, PORT_Pin_14);
+}
 #else
 void stdout_write(void* src, int cbSrc) {
   static HANDLE hStdOutput;
@@ -217,6 +229,7 @@ public:
 	void check();
 	bool init = false;
   void evaluate() {
+	eth_update_leds();
     U64 ns = nanotime();
     for (int i=0; i<nQueues; i++) {
       Queue* queue = queues[i];

@@ -14,6 +14,7 @@ void set_utc();
 void check_overloading();
 
 
+
 /* 
 При инициализации объекта данного класса, в нём сохраняется старшее и младшее 32-битовое значение времени в машинных тактах, которым,
 с помощью данного класса далее можно манипулировать, сравнивать, вычитать, преобразовывать в наносекунды
@@ -37,6 +38,12 @@ class TsNs{
 		bool 			operator 	!= 	(TsNs ts2);
 		bool 			operator 	> 	(TsNs ts2);
 		bool 			operator 	< 	(TsNs ts2);
+};
+
+struct OTT{
+	uint16_t seq;
+	TsNs out_ts;
+	TsNs inc_ts;
 };
 
 #endif 
